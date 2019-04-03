@@ -12,7 +12,7 @@ class twin(quantum_master):
     Quantum class to work with the twin, 5JJ qubit.
     """
 
-    def __init__(self, EC, EJ, alpha, assymetry, states_per_island, flux_points, plot_or_not):
+    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not):
         """
         __ Parameters __
         EC:     charging energy
@@ -42,21 +42,28 @@ class twin(quantum_master):
         self.flux_points = flux_points
         self.states_per_island = states_per_island
         self.states_total_number = self.states_per_island**3
+        self.flux_list = np.linspace(
+            self.flux_min, self.flux_max, self.flux_points)
 
         # 3 - simulation preparation
         self.prepare_correction()
         self.prepare_structure()
-        self.EC = EC            # ----------------------------------------X
-        self.EJ = EJ            # ----------------------------------------X
-        self.prepare_simulation_arrays()
         self.prepare_normalised_hamiltonian()
+
+    def override_parameters(self, EC, EJ, alpha, assymetry):
+        print("==> 'override_parameters' with EC=%i\tEJ=%i\talpha=%i\tass=%i" %
+              (EC, EJ, alpha, assymetry))
+        self.EC = EC
+        self.EJ = EJ
+        self.alpha = alpha
+        self.assymetry = assymetry
 
     def prepare_correction(self):
         """
         Correct common errors before program begins
         """
         if ((self.states_per_island % 2) == 0):
-            print("Changing states_per_island from %data_set -> %data_set" %
+            print("==> Changing states_per_island from %data_set -> %data_set" %
                   (self.states_per_island, self.states_per_island - 1))
             self.states_per_island = self.states_per_island - 1
 
@@ -64,9 +71,11 @@ class twin(quantum_master):
         """
         Prepares the structure parameters
         """
+        print("==> 'prepare_structure' creating energies and capacitances")
         # 1 - set jj dimensions
         self.param_jj_squares = 2
-        self.param_jj_overlap_area = 200 * 200 * self.param_jj_squares
+        self.param_jj_overlap_area = 250 * 250 * \
+            self.param_jj_squares  # --------------------
 
         # 2 - set the energies EC and EJ
         self.energy_charging(self.param_jj_overlap_area)
@@ -78,46 +87,11 @@ class twin(quantum_master):
             [-1, 2 + self.alpha + self.delta, -1],
             [0, -1, 2]])
 
-    def prepare_simulation_arrays(self):
-        """
-        Prepares arrays to be iterated through in simulations
-
-        1 - external flux array
-        """
-        self.flux_list = np.linspace(
-            self.flux_min, self.flux_max, self.flux_points)
-
-    def prepare_normalised_hamiltonian(self):
-        """
-        Generate elements for a normalised Hamiltonian of the system. 
-
-        ! You must afterwards constuct the Hamiltonian by
-        EC * self.op_H_charging_elm
-        EJ * self.op_H_diag_elm
-        alpha * EJ * self.op_
-
-        H = T + V
-
-        T: Charing energy
-        V: Josephson energy
-        """
-        # 1 - generate matrix elements, by going across the full state basis
-        self.op_H_charging_row = []
-        self.op_H_charging_col = []
-        self.op_H_charging_elm = []
-        self.op_H_diag_row = []
-        self.op_H_diag_col = []
-        self.op_H_diag_elm = []
-        self.op_H_diagA_row = []
-        self.op_H_diagA_col = []
-        self.op_H_diagA_elm = []
-
-        self.op_H_row = []
-        self.op_H_col = []
-        self.op_H_elements = []
+    def prepare_operators_normalised(self):
+        # additional operator components
         self.op_V_row = []
         self.op_V_col = []
-        self.op_V_elements = []
+        self.op_V_elm = []
         self.op_Phi_row = []
         self.op_Phi_col = []
         self.op_Phi_elements = []
@@ -127,74 +101,188 @@ class twin(quantum_master):
             # 2 - convert the index to island occupation
             self.convert_index_to_island_state(x)
 
-            # 3 - diagonal charging energy
-            charging_energy = self.EC * (self.state_cp_distribution *
-                                         (self.capacitance_normalised.I) *
-                                         (self.state_cp_distribution.transpose()))
-
-            self.op_H_row.append(x)
-            self.op_H_col.append(x)
-            self.op_H_elements.append(charging_energy[0, 0])
-
-            # 3b - voltaga operator
+            # 3b - voltage operator
             voltage_element = 2 * self.const_eCharge / self.param_capacitance * (
                 (2 + self.alpha) * self.state_cp_distribution[0, 1]
                 - self.state_cp_distribution[0, 0]
                 - self.state_cp_distribution[0, 2])
             self.op_V_row.append(x)
             self.op_V_col.append(x)
-            self.op_V_elements.append(voltage_element)
+            self.op_V_elm.append(voltage_element)
 
-            # 4 - offdiagonal JJ energy - check that within matrix boundaries
-            # offset y coordinate from diagonal, and fill out the symmetrical entries
-            if (self.state_numerical_distribution[0] < (self.states_per_island - 1)):
-                # island 1 (element 0)
-                y = self.convert_numerical_state_to_index(
-                    self.state_numerical_distribution + [1, 0, 0])
-                self.op_H_row.extend([x, y])
-                self.op_H_col.extend([y, x])
-                self.op_H_elements.append(-self.EJ / 2)
-                self.op_H_elements.append(-self.EJ / 2)
             if (self.state_numerical_distribution[1] < (self.states_per_island - 1)):
                 # island 2 (element 1)
                 y = self.convert_numerical_state_to_index(
                     self.state_numerical_distribution + [0, 1, 0])
-                self.op_H_row.extend([x, y])
-                self.op_H_col.extend([y, x])
-                self.op_H_elements.append(- self.alpha * self.EJ / 2)
-                self.op_H_elements.append(- self.alpha * self.EJ / 2)
 
                 # 4b - phi element
                 self.op_Phi_row.append(x)
                 self.op_Phi_col.append(y)
                 self.op_Phi_elements.append(1)
 
+        # 5 - finalise operators
+        self.op_V = sp.coo_matrix((self.op_V_elm,
+                                   (self.op_V_row, self.op_V_col))).tocsr()
+        self.op_Phi = sp.coo_matrix((self.op_Phi_elements,
+                                     (self.op_Phi_row, self.op_Phi_col))).tocsr()
+
+    def prepare_normalised_hamiltonian(self):
+        """
+        Generate elements for a normalised Hamiltonian.
+
+        During the simulation 'prepare_hamiltonian()' must be run, to change energies
+        """
+        print("==> 'prepare_normalised_hamiltonian' creating Hamiltonian entries")
+        # 0 - Individual Hamiltonian components.
+        # constant
+        self.op_H_charging_elm = []
+        self.op_H_charging_row = []
+        self.op_H_charging_col = []
+        self.op_H_diag_row = []
+        self.op_H_diag_col = []
+        self.op_H_diagA_row = []
+        self.op_H_diagA_col = []
+        # changing
+        self.op_H_phi_row = []
+        self.op_H_phi_col = []
+        self.op_H_phiAss_row = []
+        self.op_H_phiAss_col = []
+
+        # 1 - generate matrix elements, by going across all the states
+        for x in range(0, self.states_total_number):
+
+            # 2 - convert the index to island occupation
+            self.convert_index_to_island_state(x)
+
+            # 3 - diagonal charging energy
+            charging_energy = (self.state_cp_distribution *
+                               (self.capacitance_normalised.I) *
+                               (self.state_cp_distribution.transpose()))
+
+            self.op_H_charging_row.append(x)
+            self.op_H_charging_col.append(x)
+            self.op_H_charging_elm.append(charging_energy[0, 0])
+
+            # 4 - offdiagonal JJ energy - check that within matrix boundaries
+            # offset y coordinate from diagonal, and fill out the symmetrical entries
+            # ! 'diag_elm' array is not created, since all elements will be the same
+            if (self.state_numerical_distribution[0] < (self.states_per_island - 1)):
+                # island 1 (element 0)
+                y = self.convert_numerical_state_to_index(
+                    self.state_numerical_distribution + [1, 0, 0])
+                self.op_H_diag_row.extend([x, y])
+                self.op_H_diag_col.extend([y, x])
+
+                # cross diagonal terms, with cp exchange between 1 <-> 2
+                if (self.state_numerical_distribution[1] > 0):
+                    y = self.convert_numerical_state_to_index(
+                        self.state_numerical_distribution + [1, -1, 0])
+                    self.op_H_phi_row.extend([x, y])
+                    self.op_H_phi_col.extend([y, x])
+
+            if (self.state_numerical_distribution[1] < (self.states_per_island - 1)):
+                # island 2 (element 1)
+                y = self.convert_numerical_state_to_index(
+                    self.state_numerical_distribution + [0, 1, 0])
+                self.op_H_diagA_row.extend([x, y])
+                self.op_H_diagA_col.extend([y, x])
+
             if (self.state_numerical_distribution[2] < (self.states_per_island - 1)):
                 # island 3 (element 2)
                 y = self.convert_numerical_state_to_index(
                     self.state_numerical_distribution + [0, 0, 1])
-                self.op_H_row.extend([x, y])
-                self.op_H_col.extend([y, x])
-                self.op_H_elements.append(-self.EJ / 2)
-                self.op_H_elements.append(-self.EJ / 2)
+                self.op_H_diag_row.extend([x, y])
+                self.op_H_diag_col.extend([y, x])
 
-            # 5 - finalise operators
-            self.op_V = sp.coo_matrix((self.op_V_elements,
-                                       (self.op_V_row, self.op_V_col))).tocsr()
-            self.op_Phi = sp.coo_matrix((self.op_Phi_elements,
-                                         (self.op_Phi_row, self.op_Phi_col))).tocsr()
+                # cross diagonal terms, with cp exchange between 2 <-> 3
+                if (self.state_numerical_distribution[1] > 0):
+                    y = self.convert_numerical_state_to_index(
+                        self.state_numerical_distribution + [0, -1, 1])
+                    self.op_H_phiAss_row.extend([x, y])
+                    self.op_H_phiAss_col.extend([y, x])
+
+        print("  > Unchaning part of Hamiltonian has %i entries" %
+              (len(self.op_H_charging_row + self.op_H_diag_row + self.op_H_diagA_row)))
+        print("  > Flux-dependent part of Hamiltonian has %i entries" %
+              (len(self.op_H_phiAss_row + self.op_H_phiAss_row)))
+        print("==> 'prepare_normalised_hamiltonian' finished")
 
     def prepare_hamiltonian(self):
         """
         __ Description __
-        Using supplied EC, EJ, alpha, construct the full Hamiltonian
+        Using supplied EC, EJ, alpha, scale the normalised list created in 'prepare_normalised_hamiltonian' and
+        combine them into 1.
+
+        The lists are used in 'simulate' functions
         """
-        return 1
+        print("==> 'prepare_hamiltonian' with EC=%i\tEJ=%i\talpha=%i\tass=%i" %
+              (self.EC, self.EJ, self.alpha, self.assymetry))
+        # 1 - main part of the Hamiltonian, which remains unchanged during simulation
+        temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
+        temp_diag_elm = - self.EJ / 2 * np.ones(len(self.op_H_diag_row))
+        temp_diagA_elm = - self.alpha * self.EJ / \
+            2 * np.ones(len(self.op_H_diagA_row))
+
+        self.op_H_elm = list(temp_charging_elm) + \
+            list(temp_diag_elm) + list(temp_diagA_elm)
+        self.op_H_row = self.op_H_charging_row + \
+            self.op_H_diag_row + self.op_H_diagA_row
+        self.op_H_col = self.op_H_charging_col + \
+            self.op_H_diag_col + self.op_H_diagA_col
+
+        if((len(self.op_H_row) != len(self.op_H_elm)) or (len(self.op_H_col) != len(self.op_H_elm))):
+            self.raise_error("Hamiltonin has %i rows, %i columns non zero coordinatres and only %i elements" % (
+                len(self.op_H_row), len(self.op_H_col), len(self.op_H_elm)))
+
+        # 2 - exchange elements - used by 'prepare_hamiltonian_exchange' to fill out at different fluxes
+        no_exchange = int(len(self.op_H_phi_row) / 2)
+        no_exchangeAss = int(len(self.op_H_phiAss_row) / 2)
+        if(no_exchange != no_exchangeAss):
+            self.raise_error("Number of 1 <-> 2 exchanges (%i) different from 2 <-> 3 exchanges (%i)" %
+                             (no_exchange, no_exchangeAss))
+        self.op_H_SUPPORT_exchange_elm = np.ones(no_exchange)
+
+        print("==> 'prepare_hamiltonian' finished")
+
+    def prepare_hamiltonian_exchange(self, phi_external, phi_externalAss):
+        """
+        __ Parameters __
+        phi_external, phi_externalAss: fluxes to the two loops
+
+        __ Description __
+        The exchange parts of the Hamiltonian depend on the external fluxes, which changes for
+        each simulation as the field is being swept. This method fills out a list
+        of exchange values that needs to be added to the Hamiltonian list:
+
+                    op_H_elm.extend(elm_list)
+
+        ! remember to extend the row and column lists as well e.g.
+                    op_H_row.extend(self.op_H_phi_row)
+
+        __ Return __
+        List that should extend the Hamiltonian in each simulation run
+        """
+
+        # 1 - generate lists with coefficients scaled by external flux
+        temp_phi_p = (-self.EJ / 2 * np.exp(1j * phi_external)) * \
+            self.op_H_SUPPORT_exchange_elm
+        temp_phi_n = (-self.EJ / 2 * np.exp(-1j * phi_external)) * \
+            self.op_H_SUPPORT_exchange_elm
+        temp_phiAss_n = (-self.EJ / 2 * np.exp(-1j *
+                                               phi_externalAss)) * self.op_H_SUPPORT_exchange_elm
+        temp_phiAss_p = (-self.EJ / 2 * np.exp(1j *
+                                               phi_externalAss)) * self.op_H_SUPPORT_exchange_elm
+
+        # 2 - interleave the lists, alternating between +ve and -ve fluxes, for the (x,y) and (y,x)
+        # pairings in the Hamiltonian
+        elm_list = list(np.ravel(np.column_stack((temp_phi_p, temp_phi_n))))
+        elm_list = elm_list + \
+            list(np.ravel(np.column_stack((temp_phiAss_n, temp_phiAss_p))))
+
+        return elm_list
 
     def simulate(self):
         """
-        __ Parameters __
-
         __ Description __
         Method performs the eigenvalue simulations:
         1 - finish building the Hamiltonian, with the flux-dependent elements
@@ -202,7 +290,9 @@ class twin(quantum_master):
         3 - plot out the spectrum
 
         """
-        print("==> Running simulation")
+        # 0 - prepare hamiltonian for this simulation
+        self.prepare_hamiltonian()
+        print("==> 'simulate' running")
         self.spectrum_eigvals = []
         self.spectrum_eigvecs = []
         self.spectrum_simulation_12 = []
@@ -212,8 +302,8 @@ class twin(quantum_master):
         for ext_flux_number in range(0, len(self.flux_list)):
 
             # 2 - extraction of the onset phase, due to external flux
-            phiExt = (self.flux_list[ext_flux_number]) * 2 * np.pi
-            phiExt_assymetric = phiExt * self.assymetry
+            phi_external = (self.flux_list[ext_flux_number]) * 2 * np.pi
+            phi_externalAss = phi_external * self.assymetry
 
             ####################
             # 3 - FINISH MAIN HAMILTONIAN for this particular bias
@@ -221,36 +311,22 @@ class twin(quantum_master):
             # a - copy base elements
             op_H_row = self.op_H_row.copy()
             op_H_col = self.op_H_col.copy()
-            op_H_elements = self.op_H_elements.copy()
+            op_H_elm = self.op_H_elm.copy()
 
-            for x in range(0, self.states_total_number):
-                # b - convert the index to island occupation
-                self.convert_index_to_island_state(x)
-                # c - cross diagonal terms, with cp exchange between two islands
-                if (self.state_numerical_distribution[1] > 0):
-                    # exchange between 1 <-> 2
-                    if (self.state_numerical_distribution[0] < (self.states_per_island - 1)):
-                        y = self.convert_numerical_state_to_index(
-                            self.state_numerical_distribution + [1, -1, 0])
-                        op_H_row.extend([x, y])
-                        op_H_col.extend([y, x])
-                        op_H_elements.append(-self.EJ /
-                                             2 * np.exp(1j * phiExt))
-                        op_H_elements.append(-self.EJ /
-                                             2 * np.exp(-1j * phiExt))
-                    # exchange between 2 <-> 3
-                    if (self.state_numerical_distribution[2] < (self.states_per_island - 1)):
-                        y = self.convert_numerical_state_to_index(
-                            self.state_numerical_distribution + [0, -1, 1])
-                        op_H_row.extend([x, y])
-                        op_H_col.extend([y, x])
-                        op_H_elements.append(-self.EJ / 2 *
-                                             np.exp(-1j * phiExt_assymetric))
-                        op_H_elements.append(-self.EJ / 2 *
-                                             np.exp(1j * phiExt_assymetric))
+            # b - add on the phase dependent elements
+            op_H_row.extend(self.op_H_phi_row)
+            op_H_row.extend(self.op_H_phiAss_row)
+            op_H_col.extend(self.op_H_phi_col)
+            op_H_col.extend(self.op_H_phiAss_col)
+            op_H_elm.extend(self.prepare_hamiltonian_exchange(
+                phi_external, phi_externalAss))
+
+            if((len(op_H_row) != len(op_H_elm)) or (len(op_H_col) != len(op_H_elm))):
+                self.raise_error("Hamiltonin lists have %i rows, %i columns  and only %i elements" % (
+                    len(op_H_row), len(op_H_col), len(op_H_elm)))
 
             # 2 - construct sparse matrix
-            self.op_H = sp.coo_matrix((op_H_elements,
+            self.op_H = sp.coo_matrix((op_H_elm,
                                        (op_H_row, op_H_col))).tocsr()
             # self.sparse_matrix_plot(self.op_H)
 
@@ -261,7 +337,7 @@ class twin(quantum_master):
             self.spectrum_simulation_23.append([eigvals[2] - eigvals[1]])
 
             self.track_progress(ext_flux_number, len(
-                self.flux_list), 10, False)
+                self.flux_list), 20, False)
             time.sleep(0.05)
 
         # 4 - finalise arrays
@@ -301,7 +377,7 @@ class twin(quantum_master):
                 print("[%s][%i/%i]" %
                       (output, current_number, total_number))
             else:
-                print("> [%i/%i]" %
+                print("  > [%i/%i]" %
                       (current_number, total_number))
 
     def sparse_matrix_plot(self, sparse_matrix_to_plot):
@@ -344,7 +420,7 @@ class twin(quantum_master):
 
         Plots and finds differences between simulation and experiment
         """
-        print("==> Importing data files")
+        print("==> 'experimental_data_load' Importing data files")
 
         # 1 - data files to load
         base_data_name = "qubit2_data/Qubit15_5JJ_Q2_"
@@ -402,6 +478,9 @@ class twin(quantum_master):
         self.flux_list_experimental_23 = temp_array[0]
         self.spectrum_experimental_23 = temp_array[1]
 
+        print("  > Imported %i flux points" % (
+            len(list(self.flux_list_experimental_12) + list(self.flux_list_experimental_23))))
+
         # 4 - set the flux array is required (then simulations are only done to compare with
         # experimental points)
         if(set_flux_list):
@@ -413,7 +492,7 @@ class twin(quantum_master):
         if(self.plot_or_not):
             plt.show()
 
-        print("==> Importing completed\n")
+        print("==> 'experimental_data_load' finished")
 
     def experimental_data_error(self):
         """
@@ -585,15 +664,16 @@ class twin(quantum_master):
 
 
 if (__name__ == "__main__"):
-    print("==> Running twin.py")
+    print("\nRunning 'twin.py'\n")
     start = time.time()
     EC = 31
     EJ = 22
     alpha = 1.023
     assymetry = 1.011
-    test = twin(EC, EJ, alpha, assymetry, 7, 1000, False)
-    # test.experimental_data_load(test.ax, True)
-    # test.simulate()
+    test = twin(alpha, assymetry, 7, 300, True)
+    test.override_parameters(EC, EJ, test.alpha, test.assymetry)
+    test.experimental_data_load(test.ax, True)
+    test.simulate()
     # test.experimental_data_error()
     end = time.time()
     print(end - start)

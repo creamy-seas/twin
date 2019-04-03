@@ -44,7 +44,7 @@ class quantum_master:
         plt.close("all")
 
         if(self.plot_or_not):
-            print("  > Plot is ON")
+            print("==> 'prepare_plot' is setting up figure and axes")
             # 2 - interactive mode, to alow updating
             plt.ion()
 
@@ -58,8 +58,7 @@ class quantum_master:
 
             except AttributeError:
                 a = 1
-        else:
-            print("  > Plotting is OFF")
+            print("==> 'prepare_plot' finished")
 
     def convert_energy_to_GHz(self, energy):
         """
@@ -144,7 +143,7 @@ class quantum_master:
         must specify the number of field points used
         """
 
-        print("==> Importing transmission data file")
+        print("==> 'data_transmission_slice' importing transmission data file")
 
         # 1 - check format
         with open(file_name) as fin:
@@ -152,10 +151,6 @@ class quantum_master:
 
         field_points = int(first_line.split()[1])
         freq_points = int(first_line.split()[3])
-
-        # if(not isinstance(field_points, int)):
-        #     print("**> Incorrect file format - make sure top line has # 69 by 6969")
-        #     raise ValueError("File Format")o
 
         # 2 - import and slice
         print("  > Importing file with\n\t%i field points\n\t%i frequency points" % (
@@ -174,6 +169,7 @@ class quantum_master:
                         "Invalid field points in 'field_points' parameter to data_transmission_slice function")
                 plot_axes.plot(
                     transmission_array[i][1], transmission_array[i][2])
+        print("==> 'data_transmission_slice' finished")
 
     def raise_error(self, display):
         output = "\n****************************************\n" + \
@@ -181,12 +177,24 @@ class quantum_master:
         print(output)
         raise ValueError(display)
 
+    def message(self, level, message, **kwargs):
+        """
+        __ Parameters __
+        message: text to write
+        level: indent level, 1 or 2
+        """
+        print("tt")
+        if(level == 1):
+            print("==>" + message, **kwargs)
+        else:
+            print("==>" + message, **kwargs)
 
-if __name__ == "__main__":
+
+if (__name__ == "__main__"):
     test = quantum_master(True)
-    test.experimental_data_load(test.ax, True)
-    test.simulate()
-    test.experimental_data_error()
-    a = list(np.arange(0, 17, 1))
-    test.data_transmission_slice(
-        "qubit2_data/qubit2_m1_transmission.txt", test.ax, a)
+    # test.experimental_data_load(test.ax, True)
+    # test.simulate()
+    # test.experimental_data_error()
+    # a = list(np.arange(0, 17, 1))
+    # test.data_transmission_slice(
+    #     "qubit2_data/qubit2_m1_transmission.txt", test.ax, a)
