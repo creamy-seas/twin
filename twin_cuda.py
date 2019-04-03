@@ -15,7 +15,7 @@ class twin_cuda(twin):
     Adds GPU functionality to the twin class
     """
 
-    def __init__(self, EC, EJ, alpha, assymetry, states_per_island, flux_points, plot_or_not):
+    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not):
         """
         __ Parameters __
         EC:     charging energy
@@ -32,8 +32,8 @@ class twin_cuda(twin):
         - working in unit of Phi0
         """
 
-        twin.__init__(self, EC, EJ, alpha, assymetry,
-                      states_per_island, flux_points, plot_or_not)
+        twin.__init__(self, alpha, assymetry, states_per_island,
+                      flux_points, plot_or_not)
         linalg.init()
 
     def simulate(self):
@@ -47,7 +47,8 @@ class twin_cuda(twin):
         3 - plot out the spectrum
 
         """
-        print("==> Running simulation")
+        self.prepare_hamiltonian()
+        print("==> 'simulate' running on GPU")
         self.spectrum_eigvals = []
         self.spectrum_eigvecs = []
         self.spectrum_simulation_12 = []
@@ -57,8 +58,8 @@ class twin_cuda(twin):
         for ext_flux_number in range(0, len(self.flux_list)):
 
             # 2 - extraction of the onset phase, due to external flux
-            phiExt = (self.flux_list[ext_flux_number]) * 2 * np.pi
-            phiExt_assymetric = phiExt * self.assymetry
+            phi_external = (self.flux_list[ext_flux_number]) * 2 * np.pi
+            phi_externalAss = phi_external * self.assymetry
 
             ####################
             # 3 - FINISH MAIN HAMILTONIAN for this particular bias
@@ -66,44 +67,28 @@ class twin_cuda(twin):
             # a - copy base elements
             op_H_row = self.op_H_row.copy()
             op_H_col = self.op_H_col.copy()
-            op_H_elements = self.op_H_elements.copy()
+            op_H_elm = self.op_H_elm.copy()
 
-            for x in range(0, self.states_total_number):
-                # b - convert the index to island occupation
-                self.convert_index_to_island_state(x)
-                # c - cross diagonal terms, with cp exchange between two islands
-                if (self.state_numerical_distribution[1] > 0):
-                    # exchange between 1 <-> 2
-                    if (self.state_numerical_distribution[0] < (self.states_per_island - 1)):
-                        y = self.convert_numerical_state_to_index(
-                            self.state_numerical_distribution + [1, -1, 0])
-                        op_H_row.extend([x, y])
-                        op_H_col.extend([y, x])
-                        op_H_elements.append(-self.EJ /
-                                             2 * np.exp(1j * phiExt))
-                        op_H_elements.append(-self.EJ /
-                                             2 * np.exp(-1j * phiExt))
-                        # exchange between 2 <-> 3
-                    if (self.state_numerical_distribution[2] < (self.states_per_island - 1)):
-                        y = self.convert_numerical_state_to_index(
-                            self.state_numerical_distribution + [0, -1, 1])
-                        op_H_row.extend([x, y])
-                        op_H_col.extend([y, x])
-                        op_H_elements.append(-self.EJ / 2 *
-                                             np.exp(-1j * phiExt_assymetric))
-                        op_H_elements.append(-self.EJ / 2 *
-                                             np.exp(1j * phiExt_assymetric))
+            # b - add on the phase dependent elements
+            op_H_row.extend(self.op_H_phi_row)
+            op_H_row.extend(self.op_H_phiAss_row)
+            op_H_col.extend(self.op_H_phi_col)
+            op_H_col.extend(self.op_H_phiAss_col)
+            op_H_elm.extend(self.prepare_hamiltonian_exchange(
+                phi_external, phi_externalAss))
+
+            if((len(op_H_row) != len(op_H_elm)) or (len(op_H_col) != len(op_H_elm))):
+                self.raise_error("Hamiltonin lists have %i rows, %i columns  and only %i elements" % (
+                    len(op_H_row), len(op_H_col), len(op_H_elm)))
 
             # 2 - construct numpy matrix (using intermediate sparse matrix)
-            self.op_H = sp.coo_matrix((op_H_elements,
+            self.op_H = sp.coo_matrix((op_H_elm,
                                        (op_H_row, op_H_col))).tocsr()
             gpu_array = self.op_H.toarray(order="F")
             gpu_array = gpuarray.to_gpu(gpu_array)
 
             # 3 - evaluate 3 lowest eigenenergies and eigenvectors, |1> |2> |3>
             eigvecs, eigvals = linalg.eig(gpu_array, jobvl='N', jobvr='V')
-            end = time.time()
-
             self.spectrum_eigvals.append(eigvals)
             self.spectrum_simulation_12.append([eigvals[1] - eigvals[0]])
             self.spectrum_simulation_23.append([eigvals[2] - eigvals[1]])
@@ -115,7 +100,7 @@ class twin_cuda(twin):
         self.spectrum_eigvals = np.array(self.spectrum_eigvals)
         self.spectrum_simulation_12 = np.array(self.spectrum_simulation_12)
         self.spectrum_simulation_23 = np.array(self.spectrum_simulation_23)
-        print("==> Simulation finished")
+        print("==> 'simulate' finished")
 
         # 5 - plotting
         print("==> Plotting results\n")
@@ -123,15 +108,16 @@ class twin_cuda(twin):
 
 
 if __name__ == "__main__":
-    print("==> Running twin_cuda.py")
+    print("\nRunning 'twin_cuda.py'\n")
     start = time.time()
     EC = 31
     EJ = 22
     alpha = 1.023
     assymetry = 1.011
-    test = twin_cuda(EC, EJ, alpha, assymetry, 7, 1000, False)
-    # test.experimental_data_load(test.ax, True)
+    test = twin_cuda(alpha, assymetry, 5, 300, False)
+    test.override_parameters(EC, EJ, test.alpha, test.assymetry)
+    test.experimental_data_load(test.ax, True)
     test.simulate()
-    # test.experimental_data_error()
+    print(test.experimental_data_error())
     end = time.time()
     print(end - start)

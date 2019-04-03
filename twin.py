@@ -51,7 +51,7 @@ class twin(quantum_master):
         self.prepare_normalised_hamiltonian()
 
     def override_parameters(self, EC, EJ, alpha, assymetry):
-        print("==> 'override_parameters' with EC=%i\tEJ=%i\talpha=%i\tass=%i" %
+        print("==> 'override_parameters' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
               (EC, EJ, alpha, assymetry))
         self.EC = EC
         self.EJ = EJ
@@ -215,7 +215,7 @@ class twin(quantum_master):
 
         The lists are used in 'simulate' functions
         """
-        print("==> 'prepare_hamiltonian' with EC=%i\tEJ=%i\talpha=%i\tass=%i" %
+        print("==> 'prepare_hamiltonian' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
               (self.EC, self.EJ, self.alpha, self.assymetry))
         # 1 - main part of the Hamiltonian, which remains unchanged during simulation
         temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
@@ -338,13 +338,14 @@ class twin(quantum_master):
 
             self.track_progress(ext_flux_number, len(
                 self.flux_list), 20, False)
-            time.sleep(0.05)
+
+            time.sleep(0.005)
 
         # 4 - finalise arrays
         self.spectrum_eigvals = np.array(self.spectrum_eigvals)
         self.spectrum_simulation_12 = np.array(self.spectrum_simulation_12)
         self.spectrum_simulation_23 = np.array(self.spectrum_simulation_23)
-        print("==> Simulation finished")
+        print("==> 'simulate' finished")
 
         # 5 - plotting
         print("==> Plotting results")
@@ -500,7 +501,7 @@ class twin(quantum_master):
         Error between the experimental data points and the simulation
         """
         try:
-            print("==> Comparing simulation to experiment")
+            print("==> 'experimental_data_error' comparing simulation to experiment")
             if (not hasattr(self, "spectrum_simulation_12")):
                 self.raise_error(
                     "*** WARNING - run the simulation first before calling 'experimental_data_error'")
@@ -531,6 +532,7 @@ class twin(quantum_master):
                 error_cumulative = error_cumulative + (
                     self.spectrum_simulation_23[entry] - self.spectrum_experimental_23[i])[0]**2
 
+            print("==> 'experimental_data_error' finished")
             return error_cumulative
         except TypeError as e:
             print(e)
@@ -670,10 +672,10 @@ if (__name__ == "__main__"):
     EJ = 22
     alpha = 1.023
     assymetry = 1.011
-    test = twin(alpha, assymetry, 7, 300, True)
+    test = twin(alpha, assymetry, 5, 300, False)
     test.override_parameters(EC, EJ, test.alpha, test.assymetry)
     test.experimental_data_load(test.ax, True)
     test.simulate()
-    # test.experimental_data_error()
+    print(test.experimental_data_error())
     end = time.time()
     print(end - start)
