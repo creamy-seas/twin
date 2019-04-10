@@ -37,8 +37,8 @@ class twin(quantum_master):
         self.delta = 0
 
         # 2 - global parameters
-        self.flux_min = -3
-        self.flux_max = 3
+        self.flux_min = -1
+        self.flux_max = 1
         self.flux_points = flux_points
         self.states_per_island = states_per_island
         self.states_total_number = self.states_per_island**3
@@ -51,6 +51,13 @@ class twin(quantum_master):
         self.prepare_normalised_hamiltonian()
 
     def override_parameters(self, EC, EJ, alpha, assymetry):
+        """
+        __ Parameters __
+        EC, EJ, alpha, assymetry: parameters to set
+
+        __ Description __
+        For new simulations, set the new system parameters
+        """
         print("==> 'override_parameters' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
               (EC, EJ, alpha, assymetry))
         self.EC = EC
@@ -74,8 +81,8 @@ class twin(quantum_master):
         print("==> 'prepare_structure' creating energies and capacitances")
         # 1 - set jj dimensions
         self.param_jj_squares = 2
-        self.param_jj_overlap_area = 250 * 250 * \
-            self.param_jj_squares  # --------------------
+        self.param_jj_overlap_area = 200 * 200 * \
+            self.param_jj_squares
 
         # 2 - set the energies EC and EJ
         self.energy_charging(self.param_jj_overlap_area)
@@ -174,11 +181,11 @@ class twin(quantum_master):
                 self.op_H_diag_col.extend([y, x])
 
                 # cross diagonal terms, with cp exchange between 1 <-> 2
-                if (self.state_numerical_distribution[1] > 0):
-                    y = self.convert_numerical_state_to_index(
-                        self.state_numerical_distribution + [1, -1, 0])
-                    self.op_H_phi_row.extend([x, y])
-                    self.op_H_phi_col.extend([y, x])
+                # if (self.state_numerical_distribution[1] > 0):
+                #     y = self.convert_numerical_state_to_index(
+                #         self.state_numerical_distribution + [1, -1, 0])
+                #     self.op_H_phi_row.extend([x, y])
+                #     self.op_H_phi_col.extend([y, x])
 
             if (self.state_numerical_distribution[1] < (self.states_per_island - 1)):
                 # island 2 (element 1)
@@ -195,11 +202,11 @@ class twin(quantum_master):
                 self.op_H_diag_col.extend([y, x])
 
                 # cross diagonal terms, with cp exchange between 2 <-> 3
-                if (self.state_numerical_distribution[1] > 0):
-                    y = self.convert_numerical_state_to_index(
-                        self.state_numerical_distribution + [0, -1, 1])
-                    self.op_H_phiAss_row.extend([x, y])
-                    self.op_H_phiAss_col.extend([y, x])
+                # if (self.state_numerical_distribution[1] > 0):
+                #     y = self.convert_numerical_state_to_index(
+                #         self.state_numerical_distribution + [0, -1, 1])
+                #     self.op_H_phiAss_row.extend([x, y])
+                #     self.op_H_phiAss_col.extend([y, x])
 
         print("  > Unchaning part of Hamiltonian has %i entries" %
               (len(self.op_H_charging_row + self.op_H_diag_row + self.op_H_diagA_row)))
@@ -217,18 +224,31 @@ class twin(quantum_master):
         """
         print("==> 'prepare_hamiltonian' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
               (self.EC, self.EJ, self.alpha, self.assymetry))
-        # 1 - main part of the Hamiltonian, which remains unchanged during simulation
-        temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
-        temp_diag_elm = - self.EJ / 2 * np.ones(len(self.op_H_diag_row))
-        temp_diagA_elm = - self.alpha * self.EJ / \
-            2 * np.ones(len(self.op_H_diagA_row))
 
-        self.op_H_elm = list(temp_charging_elm) + \
-            list(temp_diag_elm) + list(temp_diagA_elm)
-        self.op_H_row = self.op_H_charging_row + \
-            self.op_H_diag_row + self.op_H_diagA_row
-        self.op_H_col = self.op_H_charging_col + \
-            self.op_H_diag_col + self.op_H_diagA_col
+        # 1 - main part of the Hamiltonian, which remains unchanged during simulation
+        # temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
+        # temp_diag_elm = - self.EJ / 2 * np.ones(len(self.op_H_diag_row))
+        # temp_diagA_elm = - self.alpha * self.EJ / \
+        #     2 * np.ones(len(self.op_H_diagA_row))
+
+        temp_charging_elm = np.array(self.op_H_charging_elm)
+        temp_diag_elm = np.ones(len(self.op_H_diag_row))
+        temp_diagA_elm = 0.99 * np.ones(len(self.op_H_diagA_row))
+
+        # self.op_H_elm = list(temp_charging_elm) + \
+        #     list(temp_diag_elm) + list(temp_diagA_elm)
+        # self.op_H_row = self.op_H_charging_row + \
+        #     self.op_H_diag_row + self.op_H_diagA_row
+        # self.op_H_col = self.op_H_charging_col + \
+        #     self.op_H_diag_col + self.op_H_diagA_col
+
+        self.op_H_elm = list(temp_diag_elm)
+        self.op_H_row = self.op_H_diag_row
+        self.op_H_col = self.op_H_diag_col
+
+        # self.op_H_elm = list(temp_diag_elm) + list(temp_diagA_elm)
+        # self.op_H_row = self.op_H_diag_row + self.op_H_diagA_row
+        # self.op_H_col = self.op_H_diag_col + self.op_H_diagA_col
 
         if((len(self.op_H_row) != len(self.op_H_elm)) or (len(self.op_H_col) != len(self.op_H_elm))):
             self.raise_error("Hamiltonin has %i rows, %i columns non zero coordinatres and only %i elements" % (
@@ -661,21 +681,29 @@ class twin(quantum_master):
         __ Return __
         flux_array
         """
-        return mA_array
-        # return (mA_array - offset) / period
+        # return mA_array
+        return (mA_array - offset) / period
 
 
 if (__name__ == "__main__"):
     print("\nRunning 'twin.py'\n")
     start = time.time()
-    EC = 31
-    EJ = 22
-    alpha = 1.023
-    assymetry = 1.011
-    test = twin(alpha, assymetry, 5, 300, False)
-    test.override_parameters(EC, EJ, test.alpha, test.assymetry)
-    test.experimental_data_load(test.ax, True)
-    test.simulate()
-    print(test.experimental_data_error())
-    end = time.time()
-    print(end - start)
+
+    EC = 13.5
+    EJ = 91
+    alpha = 1.011
+    assymetry = 1.023
+    test = twin(alpha, assymetry, 3, 100, False)
+    test.override_parameters(EC, EJ, alpha, assymetry)
+    test.prepare_hamiltonian()
+    temp = sp.coo_matrix((test.op_H_elm,
+                          (test.op_H_row, test.op_H_col)))
+
+    print(temp)
+    # test.experimental_data_load(test.ax, False)
+    # test.simulate()
+    # test.ax.set_xlim([-1, 1])
+    # print(test.experimental_data_error())
+
+    # end = time.time()
+    # print(end - start)
