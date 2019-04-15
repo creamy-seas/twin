@@ -181,11 +181,11 @@ class twin(quantum_master):
                 self.op_H_diag_col.extend([y, x])
 
                 # cross diagonal terms, with cp exchange between 1 <-> 2
-                # if (self.state_numerical_distribution[1] > 0):
-                #     y = self.convert_numerical_state_to_index(
-                #         self.state_numerical_distribution + [1, -1, 0])
-                #     self.op_H_phi_row.extend([x, y])
-                #     self.op_H_phi_col.extend([y, x])
+                if (self.state_numerical_distribution[1] > 0):
+                    y = self.convert_numerical_state_to_index(
+                        self.state_numerical_distribution + [1, -1, 0])
+                    self.op_H_phi_row.extend([x, y])
+                    self.op_H_phi_col.extend([y, x])
 
             if (self.state_numerical_distribution[1] < (self.states_per_island - 1)):
                 # island 2 (element 1)
@@ -202,11 +202,11 @@ class twin(quantum_master):
                 self.op_H_diag_col.extend([y, x])
 
                 # cross diagonal terms, with cp exchange between 2 <-> 3
-                # if (self.state_numerical_distribution[1] > 0):
-                #     y = self.convert_numerical_state_to_index(
-                #         self.state_numerical_distribution + [0, -1, 1])
-                #     self.op_H_phiAss_row.extend([x, y])
-                #     self.op_H_phiAss_col.extend([y, x])
+                if (self.state_numerical_distribution[1] > 0):
+                    y = self.convert_numerical_state_to_index(
+                        self.state_numerical_distribution + [0, -1, 1])
+                    self.op_H_phiAss_row.extend([x, y])
+                    self.op_H_phiAss_col.extend([y, x])
 
         print("  > Unchaning part of Hamiltonian has %i entries" %
               (len(self.op_H_charging_row + self.op_H_diag_row + self.op_H_diagA_row)))
@@ -226,29 +226,17 @@ class twin(quantum_master):
               (self.EC, self.EJ, self.alpha, self.assymetry))
 
         # 1 - main part of the Hamiltonian, which remains unchanged during simulation
-        # temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
-        # temp_diag_elm = - self.EJ / 2 * np.ones(len(self.op_H_diag_row))
-        # temp_diagA_elm = - self.alpha * self.EJ / \
-        #     2 * np.ones(len(self.op_H_diagA_row))
+        temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
+        temp_diag_elm = - self.EJ / 2 * np.ones(len(self.op_H_diag_row))
+        temp_diagA_elm = - self.alpha * self.EJ / \
+            2 * np.ones(len(self.op_H_diagA_row))
 
-        temp_charging_elm = np.array(self.op_H_charging_elm)
-        temp_diag_elm = np.ones(len(self.op_H_diag_row))
-        temp_diagA_elm = 0.99 * np.ones(len(self.op_H_diagA_row))
-
-        # self.op_H_elm = list(temp_charging_elm) + \
-        #     list(temp_diag_elm) + list(temp_diagA_elm)
-        # self.op_H_row = self.op_H_charging_row + \
-        #     self.op_H_diag_row + self.op_H_diagA_row
-        # self.op_H_col = self.op_H_charging_col + \
-        #     self.op_H_diag_col + self.op_H_diagA_col
-
-        self.op_H_elm = list(temp_diag_elm)
-        self.op_H_row = self.op_H_diag_row
-        self.op_H_col = self.op_H_diag_col
-
-        # self.op_H_elm = list(temp_diag_elm) + list(temp_diagA_elm)
-        # self.op_H_row = self.op_H_diag_row + self.op_H_diagA_row
-        # self.op_H_col = self.op_H_diag_col + self.op_H_diagA_col
+        self.op_H_elm = list(temp_charging_elm) + \
+            list(temp_diag_elm) + list(temp_diagA_elm)
+        self.op_H_row = self.op_H_charging_row + \
+            self.op_H_diag_row + self.op_H_diagA_row
+        self.op_H_col = self.op_H_charging_col + \
+            self.op_H_diag_col + self.op_H_diagA_col
 
         if((len(self.op_H_row) != len(self.op_H_elm)) or (len(self.op_H_col) != len(self.op_H_elm))):
             self.raise_error("Hamiltonin has %i rows, %i columns non zero coordinatres and only %i elements" % (
@@ -282,8 +270,6 @@ class twin(quantum_master):
         __ Return __
         List that should extend the Hamiltonian in each simulation run
         """
-
-        # 1 - generate lists with coefficients scaled by external flux
         temp_phi_p = (-self.EJ / 2 * np.exp(1j * phi_external)) * \
             self.op_H_SUPPORT_exchange_elm
         temp_phi_n = (-self.EJ / 2 * np.exp(-1j * phi_external)) * \
@@ -318,6 +304,13 @@ class twin(quantum_master):
         self.spectrum_simulation_12 = []
         self.spectrum_simulation_23 = []
 
+        op_H_row = self.op_H_row.copy()
+        op_H_col = self.op_H_col.copy()
+        op_H_row.extend(self.op_H_phi_row)
+        op_H_row.extend(self.op_H_phiAss_row)
+        op_H_col.extend(self.op_H_phi_col)
+        op_H_col.extend(self.op_H_phiAss_col)
+
         # 1 - simulation performed for each value of the external flux
         for ext_flux_number in range(0, len(self.flux_list)):
 
@@ -329,15 +322,9 @@ class twin(quantum_master):
             # 3 - FINISH MAIN HAMILTONIAN for this particular bias
             ####################
             # a - copy base elements
-            op_H_row = self.op_H_row.copy()
-            op_H_col = self.op_H_col.copy()
             op_H_elm = self.op_H_elm.copy()
 
             # b - add on the phase dependent elements
-            op_H_row.extend(self.op_H_phi_row)
-            op_H_row.extend(self.op_H_phiAss_row)
-            op_H_col.extend(self.op_H_phi_col)
-            op_H_col.extend(self.op_H_phiAss_col)
             op_H_elm.extend(self.prepare_hamiltonian_exchange(
                 phi_external, phi_externalAss))
 
@@ -424,6 +411,8 @@ class twin(quantum_master):
             plotAxes.plot(self.flux_list,
                           self.spectrum_simulation_23, label="2<->3", color='#348ABD')
             plotAxes.set_ylim(0, 20)
+            plotAxes.set_xlabel("Magnetic Flux ($\Phi$)")
+            plotAxes.set_ylabel("$\omega/2\pi$ (GHz)")
 
             plt.show()
 
@@ -444,7 +433,7 @@ class twin(quantum_master):
         print("==> 'experimental_data_load' Importing data files")
 
         # 1 - data files to load
-        base_data_name = "qubit2_data/Qubit15_5JJ_Q2_"
+        base_data_name = "data/Qubit15_5JJ_Q2_"
         transition_12 = ["m3", "m2", "m1", "1", "2", "3"]
         transition_23 = ["m3b", "m2b", "m1b", "1b", "2b"]
 
@@ -664,7 +653,7 @@ class twin(quantum_master):
         for data_set in range(0, 3):
             index = index + \
                 state_numerical_distribution[data_set] * \
-                self.states_per_island**data_set
+                self.states_per_island**(2 - data_set)
 
         return index
 
@@ -685,25 +674,65 @@ class twin(quantum_master):
         return (mA_array - offset) / period
 
 
+def write_comparisson_matrix(coo_matrix, fileName):
+    """
+    __ Parameters __
+    coomatrix - elements to print
+
+    __ Description __
+    outputs the non zeros row, col, element values.
+    used to compare with the Matlab simulations
+    """
+
+    row_array = []
+    col_array = []
+    elm_array = []
+    elI_array = []
+
+    # 1 - collect element
+    for row, col, elm in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
+        row_array.append(row)
+        col_array.append(col)
+        elm_array.append(elm.real)
+        elI_array.append(elm.imag)
+
+    row_array = np.array(row_array)
+    col_array = np.array(col_array)
+    elm_array = np.array(elm_array)
+    elI_array = np.array(elI_array)
+
+    # 2 - sort array by the column
+    sorted_index = np.argsort(col_array)
+    row_array = np.array(row_array)[sorted_index]
+    col_array = np.array(col_array)[sorted_index]
+    elm_array = np.array(elm_array)[sorted_index]
+    elI_array = np.array(elI_array)[sorted_index]
+
+    # 3 - write
+    fout = open(fileName, 'w')
+    for row, col, elm, elI in zip(row_array, col_array, elm_array, elI_array):
+        string_to_write = "%i\t%i\t%.1f  %.2f\n" % (row + 1, col + 1, elm, elI)
+        fout.write(string_to_write)
+    fout.close()
+
+
 if (__name__ == "__main__"):
     print("\nRunning 'twin.py'\n")
     start = time.time()
 
     EC = 13.5
     EJ = 91
-    alpha = 1.011
-    assymetry = 1.023
-    test = twin(alpha, assymetry, 3, 100, False)
+    alpha = 1.023
+    assymetry = 1.011
+    test = twin(alpha, assymetry, 7, 100, True)
     test.override_parameters(EC, EJ, alpha, assymetry)
-    test.prepare_hamiltonian()
-    temp = sp.coo_matrix((test.op_H_elm,
-                          (test.op_H_row, test.op_H_col)))
+    test.experimental_data_load(test.ax, True)
+    test.simulate()
+    end = time.time()
+    print(end - start)
 
-    print(temp)
-    # test.experimental_data_load(test.ax, False)
-    # test.simulate()
-    # test.ax.set_xlim([-1, 1])
-    # print(test.experimental_data_error())
-
-    # end = time.time()
-    # print(end - start)
+    # comparing with matlab
+    # test.prepare_hamiltonian()
+    # temp = sp.coo_matrix((test.op_H_elm,
+    #                       (test.op_H_row, test.op_H_col)))
+    # write_comparisson_matrix(temp, "python_sparse.txt")

@@ -1,0 +1,15 @@
+For 100 runs
+|------------------+------+------+----------|
+| Process          |  Mac | Arch | Ach Cuda |
+|------------------+------+------+----------|
+| initialise class |  0.2 |  0.4 |      0.2 |
+| import data*     | 0.18 |  0.8 |          |
+| simulate(300)    |   29 |   29 |       15 |
+| simulate(1000)   |   95 |   95 |       50 |
+| simulate (1)     | 0.01 | 0.01 |     0.05 |
+
+new version 56821 for 28sec
+old version 56821 for 34sec
+
+to run 31 x 31 x 11 (16 threads) 5 islands, 349 points
+it took 67618 seconds
