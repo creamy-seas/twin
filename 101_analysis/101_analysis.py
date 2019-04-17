@@ -137,9 +137,10 @@ class transmission():
             plot_axes.plot(xoffset,
                            yoffset,
                            marker="o", color="C8", markeredgewidth=8, alpha=1)
-            plot_axes.plot(temp_x, temp_y, color="C4")
+            plot_axes.plot(temp_x, temp_y, color="C8")
             plot_axes.set_xlabel("$\omega_{21}/ 2 \pi$ (MHz)")
             plot_axes.set_ylabel("$|t|^2$")
+
             # 3 - save image
             plot_axes.set_facecolor("white")
             plt.savefig("output/transmission.png")

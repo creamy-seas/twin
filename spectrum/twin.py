@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
 from quantum_master import quantum_master
+import honkler
 import time
 plt.style.use('ilya_plot')
 
@@ -471,7 +472,7 @@ class twin(quantum_master):
             # c - plot data
             if(self.plot_or_not):
                 plotAxes.plot(temp_data[0], temp_data[1], marker='o',
-                              color='#348ABD', markersize=2, linestyle='')
+                              color='C4', markersize=2, linestyle='')
 
             # d - store imported fluxes
             self.flux_list_experimental_23.extend(temp_data[0])
@@ -674,52 +675,11 @@ class twin(quantum_master):
         return (mA_array - offset) / period
 
 
-def write_comparisson_matrix(coo_matrix, fileName):
-    """
-    __ Parameters __
-    coomatrix - elements to print
-
-    __ Description __
-    outputs the non zeros row, col, element values.
-    used to compare with the Matlab simulations
-    """
-
-    row_array = []
-    col_array = []
-    elm_array = []
-    elI_array = []
-
-    # 1 - collect element
-    for row, col, elm in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
-        row_array.append(row)
-        col_array.append(col)
-        elm_array.append(elm.real)
-        elI_array.append(elm.imag)
-
-    row_array = np.array(row_array)
-    col_array = np.array(col_array)
-    elm_array = np.array(elm_array)
-    elI_array = np.array(elI_array)
-
-    # 2 - sort array by the column
-    sorted_index = np.argsort(col_array)
-    row_array = np.array(row_array)[sorted_index]
-    col_array = np.array(col_array)[sorted_index]
-    elm_array = np.array(elm_array)[sorted_index]
-    elI_array = np.array(elI_array)[sorted_index]
-
-    # 3 - write
-    fout = open(fileName, 'w')
-    for row, col, elm, elI in zip(row_array, col_array, elm_array, elI_array):
-        string_to_write = "%i\t%i\t%.1f  %.2f\n" % (row + 1, col + 1, elm, elI)
-        fout.write(string_to_write)
-    fout.close()
-
-
 if (__name__ == "__main__"):
     print("\nRunning 'twin.py'\n")
     start = time.time()
 
+    # honkler.config_plot_size(0.3, 0.7, 0.2, 0.8)
     EC = 13.5
     EJ = 91
     alpha = 1.023
@@ -728,11 +688,32 @@ if (__name__ == "__main__"):
     test.override_parameters(EC, EJ, alpha, assymetry)
     test.experimental_data_load(test.ax, True)
     test.simulate()
+
+    # ################### Simulation error analysis ###########
+    # fig, ax = plt.subplots(nrows=1, ncols=1)
+    # plt.ion()
+    plt.rcParams["agg.path.chunksize"] = 10000000
+    array_in = np.loadtxt("output/simulation_error_16apr2019.txt").transpose()
+    minValue = np.argmin(array_in[4])
+    for i in range(0, 5):
+        print(array_in[i][minValue])
+    # ax.scatter(array_in[3], array_in[4])
+    # ax.plot(array_in[4])
+
+    # ax[0][0].plot(array_in[0], array_in[4])
+    # ax[0][1].plot(array_in[1], array_in[4])
+    # ax[1][0].plot(array_in[2], array_in[4])
+    # ax[1][1].plot(array_in[3], array_in[4])
+
+    plt.show()
+    # honkler.plot_column_data(ax, "output/simulation_error_16apr2019.txt")
+
+    # ################### Paper Plot Inset ####################
+    # test.ax.set_xlim([0.35, 0.65])
+    # test.ax.set_ylim([0, 20])
+    # test.ax.set_xlabel("Magnetic Flux ($\Phi$)")
+    # test.ax.set_ylabel("$\omega/2\pi$ (GHz)")
+    # test.save_plot(test.ax, "experiment", 500)
+
     end = time.time()
     print(end - start)
-
-    # comparing with matlab
-    # test.prepare_hamiltonian()
-    # temp = sp.coo_matrix((test.op_H_elm,
-    #                       (test.op_H_row, test.op_H_col)))
-    # write_comparisson_matrix(temp, "python_sparse.txt")

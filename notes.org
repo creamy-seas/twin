@@ -13,3 +13,41 @@ old version 56821 for 34sec
 
 to run 31 x 31 x 11 (16 threads) 5 islands, 349 points
 it took 67618 seconds
+
+* Analysis
+From the figure of error values, we see a period of 5400 which 
+correspond to 16 alpha * 11 assymetry * 31 EJ = 5646
+ [[file:spectrum/output/simulation_error_16apr2019.png][image]]
+
+** EC [the gradual rise]
+- As EC is gradually sweeped, the error values keep drifting up
+- The favourable region is for low EC values
+- 20 to 32 EC
+[[file:spectrum/output/simulation_error_16apr2019_EC.png][ec]]
+
+** EJ [intermediate rises and falls]
+- The rapid pattern occuring on the graph, is due to EJ. 
+- The dip occurs between 35 55 EJ, after which a big rise occurs
+[[file:spectrum/output/simulation_error_16apr2019_EJ.png][ej]]
+
+** Assymetry and alpha - no apparent change
+
+* Device parameters
+*We utilise the qubit 2, with:*
+- Alpha of 1.05
+- Period of 0.7
+
+|---+--------+--------+--------+--------+--------+----------+-------+----+-------------+----------+----+----|
+|   |  quibt | loop height | loop width |   area |  ratio | jj width | alpha | half period | full period | WORKING? | EJ | EC |
+| / |    <6> |    <6> |    <6> |    <6> |    <6> |          |       | <2> |             |          |    |    |
+|---+--------+--------+--------+--------+--------+----------+-------+----+-------------+----------+----+----|
+|   |      1 |      6 |   2.75 |   16.5 |        |      0.4 |     1 | 0.3964327 |        0.79 | *        |    |    |
+|   |      2 |      6 |   3.07 |  18.42 | 1.1163636 |     0.42 |  1.05 | 0.3547029 |        0.71 | *        |    |    |
+|   |      3 |      6 |   3.48 |  20.88 | 1.1335505 |     0.44 |   1.1 | 0.3129732 |        0.63 |          |    |    |
+|   |      4 |      6 |   4.02 |  24.12 | 1.1551724 |     0.46 |  1.15 | 0.2712434 |        0.54 |          |    |    |
+|   |      5 |      6 |   4.75 |   28.5 | 1.181592 |     0.48 |   1.2 | 0.2295137 |        0.46 |          |    |    |
+|   |      6 |      6 |    5.8 |   34.8 | 1.2210526 |      0.5 |  1.25 | 0.1877839 |        0.38 |          |    |    |
+|   |      7 |      8 |    5.6 |   44.8 | 1.2873563 |     0.52 |   1.3 | 0.1460541 |        0.29 |          |    |    |
+|---+--------+--------+--------+--------+--------+----------+-------+----+-------------+----------+----+----|
+#+TBLFM: $9=@0$11 * 2;%.2f
+

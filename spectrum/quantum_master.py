@@ -177,17 +177,19 @@ class quantum_master:
         print(output)
         raise ValueError(display)
 
-    def message(self, level, message, **kwargs):
+    def save_plot(self, ax, filename, dpi):
         """
         __ Parameters __
-        message: text to write
-        level: indent level, 1 or 2
+        axes to save
+        filename
+
+        __ Description __
+        saves image with white background
         """
-        print("tt")
-        if(level == 1):
-            print("==>" + message, **kwargs)
-        else:
-            print("==>" + message, **kwargs)
+
+        ax.set_facecolor("white")
+
+        plt.savefig("output/%s.png" % (filename), dpi=dpi)
 
 
 if (__name__ == "__main__"):
