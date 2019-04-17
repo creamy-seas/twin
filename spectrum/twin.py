@@ -13,7 +13,7 @@ class twin(quantum_master):
     Quantum class to work with the twin, 5JJ qubit.
     """
 
-    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not):
+    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not, message_or_not):
         """
         __ Parameters __
         EC:     charging energy
@@ -22,6 +22,7 @@ class twin(quantum_master):
         assymetry: assymetry between two loops
         states_per_island: accuracy of simulation
         plot_or_not: show plot output or not
+        message_or_not: display output messages or not
 
         __ Description __
         Perform the general setup
@@ -29,7 +30,7 @@ class twin(quantum_master):
         - working with frequencies (normalised by hbar)
         - working in unit of Phi0
         """
-        quantum_master.__init__(self, plot_or_not)
+        quantum_master.__init__(self, plot_or_not, message_or_not)
 
         # 1 - store user supplied parameters
         self.alpha = alpha
@@ -59,8 +60,10 @@ class twin(quantum_master):
         __ Description __
         For new simulations, set the new system parameters
         """
-        print("==> 'override_parameters' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
-              (EC, EJ, alpha, assymetry))
+        if (self.message_or_not):
+            print("==> 'override_parameters' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
+                  (EC, EJ, alpha, assymetry))
+
         self.EC = EC
         self.EJ = EJ
         self.alpha = alpha
@@ -79,7 +82,9 @@ class twin(quantum_master):
         """
         Prepares the structure parameters
         """
-        print("==> 'prepare_structure' creating energies and capacitances")
+        if (self.message_or_not):
+            print("==> 'prepare_structure' creating energies and capacitances")
+
         # 1 - set jj dimensions
         self.param_jj_squares = 2
         self.param_jj_overlap_area = 200 * 200 * \
@@ -140,7 +145,9 @@ class twin(quantum_master):
 
         During the simulation 'prepare_hamiltonian()' must be run, to change energies
         """
-        print("==> 'prepare_normalised_hamiltonian' creating Hamiltonian entries")
+        if (self.message_or_not):
+            print("==> 'prepare_normalised_hamiltonian' creating Hamiltonian entries")
+
         # 0 - Individual Hamiltonian components.
         # constant
         self.op_H_charging_elm = []
@@ -209,11 +216,12 @@ class twin(quantum_master):
                     self.op_H_phiAss_row.extend([x, y])
                     self.op_H_phiAss_col.extend([y, x])
 
-        print("  > Unchaning part of Hamiltonian has %i entries" %
-              (len(self.op_H_charging_row + self.op_H_diag_row + self.op_H_diagA_row)))
-        print("  > Flux-dependent part of Hamiltonian has %i entries" %
-              (len(self.op_H_phiAss_row + self.op_H_phiAss_row)))
-        print("==> 'prepare_normalised_hamiltonian' finished")
+        if (self.message_or_not):
+            print("  > Unchaning part of Hamiltonian has %i entries" %
+                  (len(self.op_H_charging_row + self.op_H_diag_row + self.op_H_diagA_row)))
+            print("  > Flux-dependent part of Hamiltonian has %i entries" %
+                  (len(self.op_H_phiAss_row + self.op_H_phiAss_row)))
+            print("==> 'prepare_normalised_hamiltonian' finished")
 
     def prepare_hamiltonian(self):
         """
@@ -223,8 +231,10 @@ class twin(quantum_master):
 
         The lists are used in 'simulate' functions
         """
-        print("==> 'prepare_hamiltonian' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
-              (self.EC, self.EJ, self.alpha, self.assymetry))
+
+        if (self.message_or_not):
+            print("==> 'prepare_hamiltonian' with EC=%.4f\tEJ=%.4f\talpha=%.4f\tass=%.4f" %
+                  (self.EC, self.EJ, self.alpha, self.assymetry))
 
         # 1 - main part of the Hamiltonian, which remains unchanged during simulation
         temp_charging_elm = self.EC * np.array(self.op_H_charging_elm)
@@ -251,7 +261,8 @@ class twin(quantum_master):
                              (no_exchange, no_exchangeAss))
         self.op_H_SUPPORT_exchange_elm = np.ones(no_exchange)
 
-        print("==> 'prepare_hamiltonian' finished")
+        if (self.message_or_not):
+            print("==> 'prepare_hamiltonian' finished")
 
     def prepare_hamiltonian_exchange(self, phi_external, phi_externalAss):
         """
@@ -299,7 +310,10 @@ class twin(quantum_master):
         """
         # 0 - prepare hamiltonian for this simulation
         self.prepare_hamiltonian()
-        print("==> 'simulate' running")
+
+        if (self.message_or_not):
+            print("==> 'simulate' running")
+
         self.spectrum_eigvals = []
         self.spectrum_eigvecs = []
         self.spectrum_simulation_12 = []
@@ -345,7 +359,7 @@ class twin(quantum_master):
             self.spectrum_simulation_23.append([eigvals[2] - eigvals[1]])
 
             self.track_progress(ext_flux_number, len(
-                self.flux_list), 20, False)
+                self.flux_list), 33, False)
 
             time.sleep(0.005)
 
@@ -353,10 +367,11 @@ class twin(quantum_master):
         self.spectrum_eigvals = np.array(self.spectrum_eigvals)
         self.spectrum_simulation_12 = np.array(self.spectrum_simulation_12)
         self.spectrum_simulation_23 = np.array(self.spectrum_simulation_23)
-        print("==> 'simulate' finished")
+
+        if (self.message_or_not):
+            print("==> 'simulate' finished")
 
         # 5 - plotting
-        print("==> Plotting results")
         self.simulation_plot(self.ax)
 
     def track_progress(self, current_number, total_number, increment, heavy):
@@ -406,11 +421,14 @@ class twin(quantum_master):
         Plot the eigenvalues and transition spectrum
         """
         # 1 - prepare plot
+        if (self.message_or_not):
+            print("==> Plotting results")
+
         if(self.plot_or_not):
             plotAxes.plot(self.flux_list,
                           self.spectrum_simulation_12, label="1<->2", color='#004BA8')
             plotAxes.plot(self.flux_list,
-                          self.spectrum_simulation_23, label="2<->3", color='#348ABD')
+                          self.spectrum_simulation_23, label="2<->3", color='C4')
             plotAxes.set_ylim(0, 20)
             plotAxes.set_xlabel("Magnetic Flux ($\Phi$)")
             plotAxes.set_ylabel("$\omega/2\pi$ (GHz)")
@@ -511,7 +529,9 @@ class twin(quantum_master):
         Error between the experimental data points and the simulation
         """
         try:
-            print("==> 'experimental_data_error' comparing simulation to experiment")
+            if (self.message_or_not):
+                print("==> 'experimental_data_error' comparing simulation to experiment")
+
             if (not hasattr(self, "spectrum_simulation_12")):
                 self.raise_error(
                     "*** WARNING - run the simulation first before calling 'experimental_data_error'")
@@ -533,16 +553,18 @@ class twin(quantum_master):
                     self.spectrum_simulation_12[entry] - self.spectrum_experimental_12[i])[0]**2
 
             # 3 - transition23
-            for i in range(0, len(self.flux_list_experimental_23)):
-                # a - find the simulation entry corresponding to the experimental data point
-                entry = np.where(self.flux_list ==
-                                 self.flux_list_experimental_23[i])[0][0]
+            # for i in range(0, len(self.flux_list_experimental_23)):
+            #     # a - find the simulation entry corresponding to the experimental data point
+            #     entry = np.where(self.flux_list ==
+            #                      self.flux_list_experimental_23[i])[0][0]
 
-                # b - compute the difference
-                error_cumulative = error_cumulative + (
-                    self.spectrum_simulation_23[entry] - self.spectrum_experimental_23[i])[0]**2
+            #     # b - compute the difference
+            #     error_cumulative = error_cumulative + (
+            #         self.spectrum_simulation_23[entry] - self.spectrum_experimental_23[i])[0]**2
 
-            print("==> 'experimental_data_error' finished")
+            if (self.message_or_not):
+                print("==> 'experimental_data_error' finished")
+
             return error_cumulative
         except TypeError as e:
             print(e)
@@ -684,19 +706,22 @@ if (__name__ == "__main__"):
     EJ = 91
     alpha = 1.023
     assymetry = 1.011
-    test = twin(alpha, assymetry, 7, 100, True)
+    test = twin(alpha, assymetry, 7, 100, True, True)
     test.override_parameters(EC, EJ, alpha, assymetry)
     test.experimental_data_load(test.ax, True)
     test.simulate()
+    print(test.experimental_data_error())
 
-    # ################### Simulation error analysis ###########
+    # ############################################################
+    # ################### Simulation error analysis ##############
+    # ############################################################
     # fig, ax = plt.subplots(nrows=1, ncols=1)
     # plt.ion()
-    plt.rcParams["agg.path.chunksize"] = 10000000
-    array_in = np.loadtxt("output/simulation_error_16apr2019.txt").transpose()
-    minValue = np.argmin(array_in[4])
-    for i in range(0, 5):
-        print(array_in[i][minValue])
+    # plt.rcParams["agg.path.chunksize"] = 10000000
+    # array_in = np.loadtxt("output/simulation_error_16apr2019.txt").transpose()
+    # minValue = np.argmin(array_in[4])
+    # for i in range(0, 5):
+    #     print(array_in[i][minValue])
     # ax.scatter(array_in[3], array_in[4])
     # ax.plot(array_in[4])
 
@@ -705,10 +730,12 @@ if (__name__ == "__main__"):
     # ax[1][0].plot(array_in[2], array_in[4])
     # ax[1][1].plot(array_in[3], array_in[4])
 
-    plt.show()
+    # plt.show()
     # honkler.plot_column_data(ax, "output/simulation_error_16apr2019.txt")
 
+    # ############################################################
     # ################### Paper Plot Inset ####################
+    # ############################################################
     # test.ax.set_xlim([0.35, 0.65])
     # test.ax.set_ylim([0, 20])
     # test.ax.set_xlabel("Magnetic Flux ($\Phi$)")

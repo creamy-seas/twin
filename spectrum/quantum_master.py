@@ -17,7 +17,7 @@ class quantum_master:
     functions used by derived quantum classes
     """
 
-    def __init__(self, plot_or_not):
+    def __init__(self, plot_or_not, message_or_not):
         """
         plot_or_not: whether to run the plotting functions
         """
@@ -25,6 +25,7 @@ class quantum_master:
         self.const_h = 6.64 * 10**(-34)
         self.const_eCharge = 1.6 * 10**(-19)
         self.plot_or_not = plot_or_not
+        self.message_or_not = message_or_not
 
         self.prepare_plot(1, 1)
 

@@ -37,7 +37,7 @@ def prepare_file(EC_param, EJ_param, AL_param, AS_param):
     AS_array = np.linspace(AS_param[0], AS_param[1], AS_param[2])
 
     # 2 - open file and fill it up
-    fout = open("temp_data_in.txt", 'w')
+    fout = open("temp/parameters_file.txt", 'w')
     for EC in EC_array:
         for EJ in EJ_array:
             for AL in AL_array:
@@ -83,11 +83,11 @@ def read_and_delete(file_name, no_lines_to_read):
 
 if (__name__ == "__main__"):
     # 1 - parameters
-    number_of_threads = 3
-    EC_param = [5, 40, 8]
-    EJ_param = [5, 95, 8]
-    AL_param = [1, 1.2, 3]
-    AS_param = [1, 1.05, 3]
+    number_of_threads = 16
+    EC_param = [4, 40, 21]
+    EJ_param = [5, 95, 21]
+    AL_param = [1.3, 1.7, 11]
+    AS_param = [1, 1.1, 21]
 
     # 2 - prepare the file      <------ do not run this every time
     prepare_file(EC_param, EJ_param, AL_param, AS_param)
@@ -95,14 +95,15 @@ if (__name__ == "__main__"):
     # 3 - create class instances
     twinInstance = []
     for i in range(number_of_threads):
-        twinInstance.append(twin(1, 1, 5, 300, False))
+        twinInstance.append(twin(1, 1, 5, 300, False, False))
         twinInstance[i].experimental_data_load(twinInstance[i].ax, True)
 
     try:
         while True:
+            start = time.time()
             # 4 - keep reading parameters from the data file
             parameter_array = read_and_delete(
-                "temp_data_in.txt", number_of_threads)
+                "temp/parameters_file.txt", number_of_threads)
             p = []
 
             # 5 - launch parrallel simulations using the parameter array
@@ -119,12 +120,16 @@ if (__name__ == "__main__"):
             for i in range(0, number_of_threads):
                 p[i].join()
 
+            end = time.time()
+            print(end - start)
+
     except ValueError:
         # 7 - once the file is down to it's last parameters, launch the final set of threads
 
-        number_of_lines_left = sum(1 for line in open("temp_data_in.txt"))
+        number_of_lines_left = sum(
+            1 for line in open("temp/parameters_file.txt"))
         parameter_array = read_and_delete(
-            "temp_data_in.txt", number_of_lines_left)
+            "temp/parameters_file.txt", number_of_lines_left)
         p = []
 
         # 8 - launch parrallel simulations using the parameter array
