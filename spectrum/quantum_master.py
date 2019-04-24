@@ -45,7 +45,8 @@ class quantum_master:
         plt.close("all")
 
         if(self.plot_or_not):
-            print("==> 'prepare_plot' is setting up figure and axes")
+            if(self.message_or_not):
+                print("==> 'prepare_plot' is setting up figure and axes")
             # 2 - interactive mode, to alow updating
             plt.ion()
 
@@ -59,7 +60,9 @@ class quantum_master:
 
             except AttributeError:
                 a = 1
-            print("==> 'prepare_plot' finished")
+
+            if(self.message_or_not):
+                print("==> 'prepare_plot' finished")
 
     def convert_energy_to_GHz(self, energy):
         """

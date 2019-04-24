@@ -2,6 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def save_ree(axes, file_name, save_format):
+    """
+    __ Parameters __
+    axes: axes to save
+    save_format: png, svg, pdf
+
+    __ Description __
+    save graphic with white background
+    """
+    if(save_format != "svg"):
+        axes.set_facecolor("white")
+    plt.savefig("%s.%s" % (file_name, save_format), transparent=True)
+
+
 def config_plot_size(left, right, bottom, top):
     """
     __ Parameters__

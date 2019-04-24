@@ -143,7 +143,7 @@ class transmission():
 
             # 3 - save image
             plot_axes.set_facecolor("white")
-            plt.savefig("output/transmission.png")
+            plt.savefig("output/transmission.svg")
             plot_axes.set_facecolor("C7")
             plt.show()
 

@@ -5,7 +5,7 @@ import multiprocessing
 import time
 
 
-def individual_run(twinInstance, EC, EJ, alpha, assymetry):
+def individual_run(twinInstance, EC, EJ, alpha, assymetry, file_to_write):
     # 1 - create instance, load experimental data, perform simulation and crank error
     twinInstance.override_parameters(EC, EJ, alpha, assymetry)
     twinInstance.simulate()
@@ -14,10 +14,10 @@ def individual_run(twinInstance, EC, EJ, alpha, assymetry):
     # 2 - string file to write to file
     string_to_write = str(twinInstance.EC) + "\t" + str(twinInstance.EJ) + "\t" + \
         str(twinInstance.alpha) + "\t" + str(twinInstance.assymetry) + \
-        "\t" + str(error) + "\n"
+        "\t" + str(error) + "\t" + str(twinInstance.states_per_island) + "\n"
 
     # 3 - write file
-    with open("output/simulation_error.txt", 'a') as file_to_write:
+    with open(file_to_write, 'a') as file_to_write:
         file_to_write.write(string_to_write)
 
 
@@ -83,11 +83,17 @@ def read_and_delete(file_name, no_lines_to_read):
 
 if (__name__ == "__main__"):
     # 1 - parameters
+    file_to_write = "temp/temp_out.txt"
     number_of_threads = 16
-    EC_param = [4, 40, 21]
-    EJ_param = [5, 95, 21]
-    AL_param = [1.3, 1.7, 11]
-    AS_param = [1, 1.1, 21]
+    EC_param = [10, 10, 1]
+    EJ_param = [73.5, 73.5, 1]
+    AL_param = [1.0, 1.0, 1]
+    AS_param = [1.015, 1.016, 2]
+
+    # EC_param = [2, 42, 21]
+    # EJ_param = [1, 101, 41]
+    # AL_param = [1.0, 1.2, 21]
+    # AS_param = [1, 1.1, 21]
 
     # 2 - prepare the file      <------ do not run this every time
     prepare_file(EC_param, EJ_param, AL_param, AS_param)
@@ -113,7 +119,8 @@ if (__name__ == "__main__"):
                                        parameter_array[i][0],
                                        parameter_array[i][1],
                                        parameter_array[i][2],
-                                       parameter_array[i][3])))
+                                       parameter_array[i][3],
+                                       file_to_write)))
                 p[i].start()
 
             # 6 - collect parrallel arrays together and then repeat loop
@@ -139,7 +146,8 @@ if (__name__ == "__main__"):
                                    parameter_array[i][0],
                                    parameter_array[i][1],
                                    parameter_array[i][2],
-                                   parameter_array[i][3])))
+                                   parameter_array[i][3],
+                                   file_to_write)))
             p[i].start()
 
             # 9 - collect parrallel arrays together and then repeat loop

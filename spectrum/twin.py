@@ -39,8 +39,8 @@ class twin(quantum_master):
         self.delta = 0
 
         # 2 - global parameters
-        self.flux_min = -1
-        self.flux_max = 1
+        self.flux_min = -3
+        self.flux_max = 3
         self.flux_points = flux_points
         self.states_per_island = states_per_island
         self.states_total_number = self.states_per_island**3
@@ -321,6 +321,7 @@ class twin(quantum_master):
 
         op_H_row = self.op_H_row.copy()
         op_H_col = self.op_H_col.copy()
+
         op_H_row.extend(self.op_H_phi_row)
         op_H_row.extend(self.op_H_phiAss_row)
         op_H_col.extend(self.op_H_phi_col)
@@ -350,7 +351,6 @@ class twin(quantum_master):
             # 2 - construct sparse matrix
             self.op_H = sp.coo_matrix((op_H_elm,
                                        (op_H_row, op_H_col))).tocsr()
-            # self.sparse_matrix_plot(self.op_H)
 
             # 3 - evaluate 3 lowest eigenenergies and eigenvectors, |1> |2> |3>
             eigvals, eigvecs = eigsh(self.op_H, 4, which='SA', tol=0)
@@ -358,8 +358,8 @@ class twin(quantum_master):
             self.spectrum_simulation_12.append([eigvals[1] - eigvals[0]])
             self.spectrum_simulation_23.append([eigvals[2] - eigvals[1]])
 
-            self.track_progress(ext_flux_number, len(
-                self.flux_list), 33, False)
+            # self.track_progress(ext_flux_number, len(
+            #     self.flux_list), 33, False)
 
             time.sleep(0.005)
 
@@ -373,6 +373,66 @@ class twin(quantum_master):
 
         # 5 - plotting
         self.simulation_plot(self.ax)
+
+    def sparse_matrix_visualise(self):
+        """
+        __ Parameters __
+
+        __ Description __
+        Visualise what the sparse matrix is going to look like with colours
+        """
+        plt.rc("text.latex", preamble=r"\usepackage{braket}")
+
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        plt.ion()
+
+        # 1 - charing elements
+        sparse_charge = sp.coo_matrix((np.ones(len(self.op_H_charging_row)),
+                                       (self.op_H_charging_row, self.op_H_charging_col))).tocsr()
+        # 2 - diagonal elements
+        diag_row = self.op_H_diag_row + self.op_H_diagA_row
+        diag_col = self.op_H_diag_col + self.op_H_diagA_col
+        sparse_diag = sp.coo_matrix((np.ones(len(diag_row)),
+                                     (diag_row, diag_col))).tocsr()
+
+        # 3 - phase dependent element
+        phi_row = self.op_H_phi_row + self.op_H_phiAss_row
+        phi_col = self.op_H_phi_col + self.op_H_phiAss_col
+        sparse_phi = sp.coo_matrix((np.ones(len(phi_row)),
+                                    (phi_row, phi_col))).tocsr()
+        # 4 - plot spectrum
+        ax.grid(b=True, which='major', color="black")
+        ax.grid(b=True, which='minor')
+        ax.spy(sparse_charge, color="C3", markersize=6)
+        ax.spy(sparse_diag, color="C2", markersize=6)
+        ax.spy(sparse_phi, markersize=6)
+        ax.set_xlim([-0.5, self.states_total_number - 0.5])
+        ax.set_ylim([self.states_total_number - 0.5, -0.5])
+
+        # 5 - add the ticks
+        total_ticks = self.states_total_number
+        ax.set_xticks(np.linspace(
+            0, self.states_total_number - 1, total_ticks), minor=True)
+        ax.set_yticks(np.linspace(
+            0, self.states_total_number - 1, total_ticks), minor=True)
+
+        ax.set_xticks([0, 13, 26])
+        xticklabels = [""] * 3
+        xticklabels[0] = r"$\left|-1, -1, -1 \right\rangle$"
+        xticklabels[1] = r"$\left|0, 0, 0 \right\rangle$"
+        xticklabels[2] = r"$\left|+1, +1, +1 \right\rangle$"
+
+        ax.set_yticks([0, 6, 13, 19, 26])
+        yticklabels = [""] * 5
+        yticklabels[1] = r"$\left\langle -1, +1, -1 \right|$"
+        yticklabels[2] = r"$\left\langle 0, 0, 0 \right|$"
+        yticklabels[3] = r"$\left\langle +1, -1, 0 \right|$"
+        yticklabels[4] = r"$\left\langle +1, +1, +1 \right|$"
+
+        ax.set_xticklabels(xticklabels)
+        ax.set_yticklabels(yticklabels)
+        honkler.save_ree(ax, "output/fig4", "svg")
+        plt.show()
 
     def track_progress(self, current_number, total_number, increment, heavy):
         """
@@ -449,7 +509,8 @@ class twin(quantum_master):
 
         Plots and finds differences between simulation and experiment
         """
-        print("==> 'experimental_data_load' Importing data files")
+        if(self.message_or_not):
+            print("==> 'experimental_data_load' Importing data files")
 
         # 1 - data files to load
         base_data_name = "data/Qubit15_5JJ_Q2_"
@@ -472,8 +533,13 @@ class twin(quantum_master):
 
             # c - plot data
             if(self.plot_or_not):
-                plotAxes.plot(temp_data[0], temp_data[1], marker='o',
-                              color='#004BA8', markersize=2, linestyle='')
+                plotAxes.plot(temp_data[0], temp_data[1],
+                              marker='o',
+                              color='#004BA8',
+                              markeredgewidth=5,
+                              markersize=3,
+                              alpha=0.5,
+                              linestyle='')
 
             # d - store imported data in 1 array
             self.flux_list_experimental_12.extend(temp_data[0])
@@ -489,8 +555,13 @@ class twin(quantum_master):
 
             # c - plot data
             if(self.plot_or_not):
-                plotAxes.plot(temp_data[0], temp_data[1], marker='o',
-                              color='C4', markersize=2, linestyle='')
+                plotAxes.plot(temp_data[0], temp_data[1],
+                              marker='o',
+                              color='C4',
+                              markersize=3,
+                              markeredgewidth=5,
+                              alpha=0.5,
+                              linestyle='')
 
             # d - store imported fluxes
             self.flux_list_experimental_23.extend(temp_data[0])
@@ -507,13 +578,15 @@ class twin(quantum_master):
         self.flux_list_experimental_23 = temp_array[0]
         self.spectrum_experimental_23 = temp_array[1]
 
-        print("  > Imported %i flux points" % (
-            len(list(self.flux_list_experimental_12) + list(self.flux_list_experimental_23))))
+        if (self.message_or_not):
+            print("  > Imported %i flux points" % (
+                len(list(self.flux_list_experimental_12) + list(self.flux_list_experimental_23))))
 
         # 4 - set the flux array is required (then simulations are only done to compare with
         # experimental points)
         if(set_flux_list):
-            print("  > Set experimental flux points for simulation")
+            if(self.message_or_not):
+                print("  > Set experimental flux points for simulation")
             self.flux_list = np.array(
                 list(self.flux_list_experimental_12) + list(self.flux_list_experimental_23))
             self.flux_list.sort()
@@ -521,7 +594,8 @@ class twin(quantum_master):
         if(self.plot_or_not):
             plt.show()
 
-        print("==> 'experimental_data_load' finished")
+        if(self.message_or_not):
+            print("==> 'experimental_data_load' finished")
 
     def experimental_data_error(self):
         """
@@ -553,14 +627,14 @@ class twin(quantum_master):
                     self.spectrum_simulation_12[entry] - self.spectrum_experimental_12[i])[0]**2
 
             # 3 - transition23
-            # for i in range(0, len(self.flux_list_experimental_23)):
-            #     # a - find the simulation entry corresponding to the experimental data point
-            #     entry = np.where(self.flux_list ==
-            #                      self.flux_list_experimental_23[i])[0][0]
+            for i in range(0, len(self.flux_list_experimental_23)):
+                # a - find the simulation entry corresponding to the experimental data point
+                entry = np.where(self.flux_list ==
+                                 self.flux_list_experimental_23[i])[0][0]
 
-            #     # b - compute the difference
-            #     error_cumulative = error_cumulative + (
-            #         self.spectrum_simulation_23[entry] - self.spectrum_experimental_23[i])[0]**2
+                # b - compute the difference
+                error_cumulative = error_cumulative + (
+                    self.spectrum_simulation_23[entry] - self.spectrum_experimental_23[i])[0]**2
 
             if (self.message_or_not):
                 print("==> 'experimental_data_error' finished")
@@ -701,46 +775,82 @@ if (__name__ == "__main__"):
     print("\nRunning 'twin.py'\n")
     start = time.time()
 
-    # honkler.config_plot_size(0.3, 0.7, 0.2, 0.8)
+    # ############################################################
+    # ################### Simulation  ############################
+    # ############################################################
+    # honkler.config_plot_size(0.15, 0.95, 0.15, 0.9)
     EC = 13.5
-    EJ = 91
+    EJ = 92
     alpha = 1.023
     assymetry = 1.011
-    test = twin(alpha, assymetry, 7, 100, True, True)
+    test = twin(alpha, assymetry, 7, 300, True, False)
+    # test.sparse_matrix_visualise()
     test.override_parameters(EC, EJ, alpha, assymetry)
     test.experimental_data_load(test.ax, True)
     test.simulate()
+    test.ax.set_xlim([-3, 3])
+    test.ax.set_ylim([8, 18])
+    honkler.save_ree(test.ax, "output/fig3_spectrum", "svg")
     print(test.experimental_data_error())
 
     # ############################################################
     # ################### Simulation error analysis ##############
     # ############################################################
-    # fig, ax = plt.subplots(nrows=1, ncols=1)
+    # fig, ax = plt.subplots(nrows=2, ncols=2)
     # plt.ion()
     # plt.rcParams["agg.path.chunksize"] = 10000000
-    # array_in = np.loadtxt("output/simulation_error_16apr2019.txt").transpose()
+    # array_in = np.loadtxt("output/simulation_error_18apr2019.txt").transpose()
     # minValue = np.argmin(array_in[4])
     # for i in range(0, 5):
     #     print(array_in[i][minValue])
-    # ax.scatter(array_in[3], array_in[4])
-    # ax.plot(array_in[4])
 
-    # ax[0][0].plot(array_in[0], array_in[4])
-    # ax[0][1].plot(array_in[1], array_in[4])
-    # ax[1][0].plot(array_in[2], array_in[4])
-    # ax[1][1].plot(array_in[3], array_in[4])
+    # # 1 - filtering
+    # list_0 = []
+    # list_1 = []
+    # list_2 = []
+    # list_3 = []
+    # list_4 = []
 
+    # for i in range(0, len(array_in[0])):
+    #     if (array_in[4][i] < 500):
+    #         list_0.append(array_in[0][i])
+    #         list_1.append(array_in[1][i])
+    #         list_2.append(array_in[2][i])
+    #         list_3.append(array_in[3][i])
+    #         list_4.append(array_in[4][i])
+
+    # array_out = np.array([list_0, list_1, list_2, list_3, list_4])
+
+    # # 2 - pltting
+    # # ax.plot(array_out[4])
+    # ax[0][0].scatter(array_out[0], array_out[4], marker=",", s=1)
+    # ax[0][0].set_title("EC")
+    # ax[0][1].scatter(array_out[1], array_out[4], marker=",", s=1)
+    # ax[0][1].set_title("EJ")
+    # ax[1][0].scatter(array_out[2], array_out[4], marker=",", s=1)
+    # ax[1][0].set_title("alpha")
+    # ax[1][1].scatter(array_out[3], array_out[4], marker=",", s=1)
+    # ax[1][1].set_title("assymetry")
+
+    # # name = "output/simulation_error_17apr2019_comb"
+    # # plt.savefig("%s.png" % name)
     # plt.show()
+
     # honkler.plot_column_data(ax, "output/simulation_error_16apr2019.txt")
 
     # ############################################################
     # ################### Paper Plot Inset ####################
     # ############################################################
-    # test.ax.set_xlim([0.35, 0.65])
-    # test.ax.set_ylim([0, 20])
+    # honkler.config_plot_size(0.4, 0.6, 0.3, 0.7)
+    # test = twin(1, 1, 7, 100, True, False)
+    # test.experimental_data_load(test.ax, True)
+    # test.ax.set_xlim([0.4, 0.6])
+    # test.ax.set_xticks([0.4, 0.5, 0.6])
+    # test.ax.set_ylim([5, 20])
+    # test.ax.set_yticks([0, 10, 20])
     # test.ax.set_xlabel("Magnetic Flux ($\Phi$)")
     # test.ax.set_ylabel("$\omega/2\pi$ (GHz)")
-    # test.save_plot(test.ax, "experiment", 500)
+    # honkler.save_ree(test.ax, "output/fig2_spectrum", "svg")
 
     end = time.time()
     print(end - start)
