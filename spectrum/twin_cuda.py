@@ -15,7 +15,7 @@ class twin_cuda(twin):
     Adds GPU functionality to the twin class
     """
 
-    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not):
+    def __init__(self, alpha, assymetry, states_per_island, flux_points, plot_or_not, message_or_not):
         """
         __ Parameters __
         EC:     charging energy
@@ -33,7 +33,7 @@ class twin_cuda(twin):
         """
 
         twin.__init__(self, alpha, assymetry, states_per_island,
-                      flux_points, plot_or_not)
+                      flux_points, plot_or_not, message_or_not)
         linalg.init()
 
     def simulate(self):
@@ -47,12 +47,24 @@ class twin_cuda(twin):
         3 - plot out the spectrum
 
         """
-        self.prepare_hamiltonian()
-        print("==> 'simulate' running on GPU")
+
+        # 0 - prepare hamiltonian for this simulation
+        self.prepare_hamiltonian_stage2()
+
+        if (self.message_or_not):
+            print("==> 'simulate' running")
+
         self.spectrum_eigvals = []
         self.spectrum_eigvecs = []
         self.spectrum_simulation_12 = []
         self.spectrum_simulation_23 = []
+
+        op_H_row = self.op_H_row.copy()
+        op_H_col = self.op_H_col.copy()
+        op_H_row.extend(self.op_H_phi_row)
+        op_H_row.extend(self.op_H_phiAss_row)
+        op_H_col.extend(self.op_H_phi_col)
+        op_H_col.extend(self.op_H_phiAss_col)
 
         # 1 - simulation performed for each value of the external flux
         for ext_flux_number in range(0, len(self.flux_list)):
@@ -65,16 +77,10 @@ class twin_cuda(twin):
             # 3 - FINISH MAIN HAMILTONIAN for this particular bias
             ####################
             # a - copy base elements
-            op_H_row = self.op_H_row.copy()
-            op_H_col = self.op_H_col.copy()
             op_H_elm = self.op_H_elm.copy()
 
             # b - add on the phase dependent elements
-            op_H_row.extend(self.op_H_phi_row)
-            op_H_row.extend(self.op_H_phiAss_row)
-            op_H_col.extend(self.op_H_phi_col)
-            op_H_col.extend(self.op_H_phiAss_col)
-            op_H_elm.extend(self.prepare_hamiltonian_exchange(
+            op_H_elm.extend(self.prepare_hamiltonian_stage3(
                 phi_external, phi_externalAss))
 
             if((len(op_H_row) != len(op_H_elm)) or (len(op_H_col) != len(op_H_elm))):
@@ -93,18 +99,16 @@ class twin_cuda(twin):
             self.spectrum_simulation_12.append([eigvals[1] - eigvals[0]])
             self.spectrum_simulation_23.append([eigvals[2] - eigvals[1]])
 
-            self.track_progress(ext_flux_number, len(
-                self.flux_list), 20, False)
+            # self.track_progress(ext_flux_number, len(
+            #     self.flux_list), 20, False)
 
         # 4 - finalise arrays
         self.spectrum_eigvals = np.array(self.spectrum_eigvals)
         self.spectrum_simulation_12 = np.array(self.spectrum_simulation_12)
         self.spectrum_simulation_23 = np.array(self.spectrum_simulation_23)
-        print("==> 'simulate' finished")
 
-        # 5 - plotting
-        print("==> Plotting results\n")
-        self.simulation_plot(self.ax)
+        if (self.message_or_not):
+            print("==> 'simulate' finished")
 
 
 if __name__ == "__main__":

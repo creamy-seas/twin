@@ -24,25 +24,29 @@ class quantum_master:
 
         self.const_h = 6.64 * 10**(-34)
         self.const_eCharge = 1.6 * 10**(-19)
+        self.const_Phi0 = self.const_h / (2 * self.const_eCharge)
         self.plot_or_not = plot_or_not
         self.message_or_not = message_or_not
-
-        self.prepare_plot(1, 1)
 
     def prepare_plot(self, nrows, ncols):
         """
         __ Parameters __
+        fig: figure to prepare plot for
+        ax: axes to put on the figure
         nrows: number of subplot rows
         ncols: number of suplot columns
 
         __ Description __
         Prepare figure on which plotting will be performed
+
+        __ Return __
+        fig, ax
         """
         # 1 - by default, nothing is plotting
-        self.fig = None
-        self.ax = None
         plt.ioff()
         plt.close("all")
+        fig = None
+        ax = None
 
         if(self.plot_or_not):
             if(self.message_or_not):
@@ -51,18 +55,20 @@ class quantum_master:
             plt.ion()
 
             # 3 - define plots
-            self.fig, self.ax = plt.subplots(nrows=nrows, ncols=ncols)
+            fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
             try:
-                # 3  - adjust position on the screen
+                # 4  - adjust position on the screen
                 mngr = plt.get_current_fig_manager()
                 mngr.window.setGeometry(0, 30, 1280, 1600)
-                self.fig.canvas.set_window_title('Run time data')
+                fig.canvas.set_window_title('Run time data')
 
             except AttributeError:
-                a = 1
+                pass
 
             if(self.message_or_not):
                 print("==> 'prepare_plot' finished")
+
+        return fig, ax
 
     def convert_energy_to_GHz(self, energy):
         """
