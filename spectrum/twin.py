@@ -871,7 +871,7 @@ if (__name__ == "__main__"):
     EJ = 92
     alpha = 1.023
     assymetry = 1.011
-    test = twin(alpha, assymetry, 7, 5000, True, False)
+    test = twin(alpha, assymetry, 7, 100, True, False)
     test.prepare_operators()
     test.override_parameters(EC, EJ, alpha, assymetry)
     # test.experimental_data_load(test.ax, False)

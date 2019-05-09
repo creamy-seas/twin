@@ -587,7 +587,6 @@ if (__name__ == "__main__"):
     test.override_parameters(EC, EJ, alpha)
     test.simulate([True, False])
     test.plot_simulation(test.ax[0])
-    # test.plot_dipole_moment_voltage(test.ax)
     test.plot_dipole_moment_voltage_beta(test.ax[1])
 
     end = time.time()

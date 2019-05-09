@@ -1,14 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import honkler
 from scipy.optimize import curve_fit
 plt.style.use('ilya_plot')
 
 
-class transmission():
+class general_data():
 
     def __init__(self, plot_or_not):
         self.plot_or_not = plot_or_not
-        self.prepare_plot(1, 1)
+        self.fig, self.ax = self.prepare_plot(1, 1)
         self.transmission_x = []
         self.transmission_y = []
 
@@ -22,8 +23,8 @@ class transmission():
         Prepare figure on which plotting will be performed
         """
         # 1 - by default, nothing is plotting
-        self.fig = None
-        self.ax = None
+        fig = None
+        ax = None
         plt.ioff()
         plt.close("all")
 
@@ -33,7 +34,7 @@ class transmission():
             plt.ion()
 
             # 3 - define plots
-            self.fig, self.ax = plt.subplots(nrows=nrows, ncols=ncols)
+            fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
             try:
                 # 3  - adjust position on the screen
                 mngr = plt.get_current_fig_manager()
@@ -43,6 +44,8 @@ class transmission():
             except AttributeError:
                 pass
             print("==> 'prepare_plot' finished")
+
+        return fig, ax
 
     def raise_error(self, display):
         output = "\n****************************************\n" + \
@@ -87,9 +90,23 @@ class transmission():
                 self.transmission_x = np.delete(self.transmission_x, i)
                 self.transmission_y = np.delete(self.transmission_y, i)
 
+    def plot_2D(self, plot_axes, array_x, array_y, color):
+        """
+        __ Parameters __
+        [array] array_x, array_y: data to plot
+        [plt.Axes] plot_axes where to display data
+
+        __ Description __
+        plots data on the chosen axes
+        """
+        if(self.plot_or_not):
+            plot_axes.scatter(array_x,
+                              array_y, marker='.', color=color)
+            plt.show()
+
     def transmission_plot(self, plot_axes):
         """
-        Plots loaded transmission data
+        Plots loaded general_data data
         """
         if(self.plot_or_not):
             plot_axes.scatter(self.transmission_x,
@@ -99,7 +116,7 @@ class transmission():
     def __transmission_fit_function(self, x, Gamma1, Gamma2, Omega, offset):
         """
         __ Description __
-        Fits the REAL part of transmission intesnity (which near the resonance will
+        Fits the REAL part of general_data intesnity (which near the resonance will
         dominate over the IMAGINARY part (see major_project p.12))
 
         R[t]**2
@@ -107,7 +124,6 @@ class transmission():
 
         x = x - offset
         return (1 - Gamma1 / (2 * Gamma2 * (1 + (x / Gamma2)**2 + Omega ** 2 / Gamma1 / Gamma2)))**2
-        # return (1 - 1 / (Gamma1 + (x / Gamma2)**2 + Omega ** 2 / Gamma1 / Gamma2))**2
 
     def transmission_fit(self, plot_axes):
         # 1 - do fitting
@@ -136,21 +152,79 @@ class transmission():
         if(self.plot_or_not):
             plot_axes.plot(xoffset,
                            yoffset,
-                           marker="o", color="C8", markeredgewidth=8, alpha=1)
-            plot_axes.plot(temp_x, temp_y, color="C8")
+                           marker="o", color="C9", markeredgewidth=8, alpha=1)
+            plot_axes.plot(temp_x, temp_y, color="C9")
             plot_axes.set_xlabel("$\omega_{21}/ 2 \pi$ (MHz)")
             plot_axes.set_ylabel("$|t|^2$")
 
-            # 3 - save image
-            plot_axes.set_facecolor("white")
-            plt.savefig("output/transmission.svg")
-            plot_axes.set_facecolor("C7")
+            plt.show()
+
+    def rabi_load(self, filename, colX, colY):
+        """
+        __ Parameters __
+        [str] filename: where to load rabi data from
+        [int] colX, colY: which columns to treat as the X (time) and Y(amplitude)
+
+        __ Description __
+        loads rabi oscillation data
+        """
+
+        temp_load = np.loadtxt(filename)
+        self.rabi_x = temp_load[:, colX]
+        self.rabi_y = temp_load[:, colY] * 10**6
+
+    def __rabi_fit_function(self, x, A, tDec, t_p, phi, D):
+        """
+        __ Description __
+        Fits Rabi oscillations of the format
+        A e^(-t/tDec) cos(2pi*t/tP+phi) + D
+        """
+
+        return A * np.sin(2 * np.pi * x / t_p + phi) * np.exp(-x / tDec) + D
+
+    def rabi_fit(self, plot_axes, color):
+        # 1 - do fitting
+
+        popt, pcov = curve_fit(self.__rabi_fit_function,
+                               self.rabi_x, self.rabi_y,
+                               bounds=([0, 35, 5, -np.pi, -1E-5],
+                                       [1, 45, 20, np.pi, 1E-5]))
+
+        print("  > Amplitude:\t%.3f" % (popt[0]))
+        print("  > t_dec:\t%.3f" % (popt[1]))
+        print("  > t_period:\t%.3f" % (popt[2]))
+        print("  > phi_offset:\t%.3f" % (popt[3]))
+        print("  > offset:\t%.3f" % (popt[4]))
+
+        # 2 - prepare arrays and plot
+        temp_x = np.linspace(min(self.rabi_x),
+                             max(self.rabi_x), 500)
+        temp_y = self.__rabi_fit_function(
+            temp_x, popt[0], popt[1], popt[2], popt[3], popt[4])
+
+        if(self.plot_or_not):
+            plot_axes.plot(temp_x, temp_y, color=color)
+            plot_axes.set_xlabel("Pulse length, $\Delta t$ (ns)")
+            plot_axes.set_ylabel("Real Amplitude (a.u)")
+
             plt.show()
 
 
 if (__name__ == "__main__"):
-    test = transmission(True)
-    test.transmission_load(0, 1, True)
-    test.transmission_filter(0.8, 10**12, 0, 2)
-    test.transmission_plot(test.ax)
-    test.transmission_fit(test.ax)
+    # ##########################################################
+    # ################### Rabi  ################################
+    ############################################################
+    honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
+    test = general_data(True)
+    test.rabi_load("data/rabi_oscillation.txt", 1, 2)
+    test.plot_2D(test.ax, test.rabi_x, test.rabi_y, "C3")
+    test.rabi_fit(test.ax, "#7b68ee")
+    honkler.save_ree(test.ax, "output/fig5_rabi", "svg")
+
+    # ##########################################################
+    # ################### Transmission #########################
+    ############################################################
+    # test.transmission_load(0, 1, True)
+    # test.transmission_filter(0.8, 10**12, 0, 2)
+    # test.transmission_plot(test.ax)
+    # test.transmission_fit(test.ax)
