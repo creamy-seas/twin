@@ -402,8 +402,6 @@ class twin(quantum_master):
             self.track_progress(ext_flux_number, len(
                 self.flux_list), 20, False)
 
-            # time.sleep(0.005)
-
         # 4 - finalise arrays
         self.dipole_moment_voltage = np.array(self.dipole_moment_voltage)
         self.dipole_moment_voltage_beta = np.array(
@@ -444,7 +442,7 @@ class twin(quantum_master):
         # 4 - plot spectrum
         ax.grid(b=True, which='major', color="black")
         ax.grid(b=True, which='minor')
-        ax.spy(sparse_charge, color="C3", markersize=6)
+        ax.spy(sparse_charge, color="C4", markersize=6)
         ax.spy(sparse_diag, color="C2", markersize=6)
         ax.spy(sparse_phi, markersize=6)
         ax.set_xlim([-0.5, self.states_total_number - 0.5])
@@ -576,7 +574,7 @@ class twin(quantum_master):
             plotAxes.plot(self.flux_list,
                           (self.dipole_moment_voltage_beta[:, 0]**2 +
                            self.dipole_moment_voltage_beta[:, 1]**2)**(1 / 2),
-                          label="1<->2", color='C6')
+                          label="1<->2", color='C6', dashes=[3, 3])
 
             plotAxes.set_xlabel("Magnetic Flux ($\Phi$)")
             plotAxes.set_ylabel(
@@ -624,9 +622,9 @@ class twin(quantum_master):
                 plotAxes.plot(temp_data[0], temp_data[1],
                               marker='o',
                               color='#004BA8',
-                              markeredgewidth=3,
-                              markersize=3,
-                              alpha=0.5,
+                              markeredgecolor="C2",
+                              markersize=7,
+                              alpha=0.95,
                               linestyle='')
 
             # d - store imported data in 1 array
@@ -646,9 +644,10 @@ class twin(quantum_master):
                 plotAxes.plot(temp_data[0], temp_data[1],
                               marker='o',
                               color='C4',
-                              markeredgewidth=3,
-                              markersize=3,
-                              alpha=0.5,
+                              markeredgecolor="#fb2c07",
+                              markeredgewidth="0.4",
+                              markersize=5,
+                              alpha=0.95,
                               linestyle='')
 
             # d - store imported fluxes
@@ -866,19 +865,16 @@ if (__name__ == "__main__"):
     # ############################################################
     # ################### Simulation  ############################
     # ############################################################
-    honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
-    EC = 13.5
-    EJ = 92
-    alpha = 1.023
-    assymetry = 1.011
-    test = twin(alpha, assymetry, 7, 100, True, False)
-    test.prepare_operators()
-    test.override_parameters(EC, EJ, alpha, assymetry)
-    # test.experimental_data_load(test.ax, False)
-    test.simulate([True, False])
-    # test.plot_simulation(test.ax)
-    test.plot_dipole_moment_voltage_beta(test.ax)
-    # test.plot_dipole_moment_voltage(test.ax)
+    # honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
+    # EC = 13.5
+    # EJ = 92
+    # alpha = 1.023
+    # assymetry = 1.011
+    # test = twin(alpha, assymetry, 7, 100, True, False)
+    # test.prepare_operators()
+    # test.override_parameters(EC, EJ, alpha, assymetry)
+    # test.simulate([True, False])
+    # test.plot_dipole_moment_voltage_beta(test.ax)
 
     # test.ax.set_yticklabels([-40, -30, -20, -10, 0, 10, 20, 30, 40])
     # honkler.save_ree(test.ax, "output/fig5_transition", "svg")
@@ -898,6 +894,7 @@ if (__name__ == "__main__"):
     # test.ax.set_xlim([-3, 3])
     # test.ax.set_ylim([8, 18])
     # honkler.save_ree(test.ax, "output/fig3_spectrum", "svg")
+
     # ############################################################
     # ################### Simulation error analysis ##############
     # ############################################################
@@ -942,20 +939,6 @@ if (__name__ == "__main__"):
     # plt.show()
 
     # honkler.plot_column_data(ax, "output/simulation_error_16apr2019.txt")
-
-    # ############################################################
-    # ################### Paper Plot Inset ####################
-    # ############################################################
-    # honkler.config_plot_size(0.4, 0.6, 0.3, 0.7)
-    # test = twin(1, 1, 7, 100, True, False)
-    # test.experimental_data_load(test.ax, True)
-    # test.ax.set_xlim([0.4, 0.6])
-    # test.ax.set_xticks([0.4, 0.5, 0.6])
-    # test.ax.set_ylim([5, 20])
-    # test.ax.set_yticks([0, 10, 20])
-    # test.ax.set_xlabel("Magnetic Flux ($\Phi$)")
-    # test.ax.set_ylabel("$\omega/2\pi$ (GHz)")
-    # honkler.save_ree(test.ax, "output/fig2_spectrum", "svg")
 
     end = time.time()
     print("Time taken:\t%.3fs" % (end - start))

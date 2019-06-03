@@ -53,11 +53,12 @@ class general_data():
         print(output)
         raise ValueError(display)
 
-    def transmission_load(self, colX, colY, convert_to_mhz):
+    def transmission_load(self, colX, colY, convert_to_ghz):
         """
         __ Parameters __
         colX, colY: column to treat as the X,Y coordinate
-        convert_to_mhz: nromalise by 10^6 or not
+        convert_to_ghz: nromalise by 10^6 or not
+        convert_to_ghz: nromalise by 10^6 or not
 
         __ Description __
         Loads in the file to 'self.data_transmission'
@@ -66,8 +67,8 @@ class general_data():
         self.transmission_x = temp_load[colX, :]
         self.transmission_y = temp_load[colY, :]
 
-        if(convert_to_mhz):
-            self.transmission_x = self.transmission_x / 10**6
+        if(convert_to_ghz):
+            self.transmission_x = self.transmission_x / 10**9
 
     def transmission_filter(self, xMin, xMax, yMin, yMax):
         """
@@ -154,7 +155,7 @@ class general_data():
                            yoffset,
                            marker="o", color="C9", markeredgewidth=8, alpha=1)
             plot_axes.plot(temp_x, temp_y, color="C9")
-            plot_axes.set_xlabel("$\omega_{21}/ 2 \pi$ (MHz)")
+            plot_axes.set_xlabel("$\omega_{21}/ 2 \pi$ (GHz)")
             plot_axes.set_ylabel("$|t|^2$")
 
             plt.show()
@@ -214,17 +215,20 @@ if (__name__ == "__main__"):
     # ##########################################################
     # ################### Rabi  ################################
     ############################################################
-    honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
-    test = general_data(True)
-    test.rabi_load("data/rabi_oscillation.txt", 1, 2)
-    test.plot_2D(test.ax, test.rabi_x, test.rabi_y, "C3")
-    test.rabi_fit(test.ax, "#7b68ee")
-    honkler.save_ree(test.ax, "output/fig5_rabi", "svg")
+    # honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
+    # test = general_data(True)
+    # test.rabi_load("data/rabi_oscillation.txt", 1, 2)
+    # test.plot_2D(test.ax, test.rabi_x, test.rabi_y, "C3")
+    # test.rabi_fit(test.ax, "#7b68ee")
+    # honkler.save_ree(test.ax, "output/fig5_rabi", "svg")
 
     # ##########################################################
     # ################### Transmission #########################
     ############################################################
-    # test.transmission_load(0, 1, True)
-    # test.transmission_filter(0.8, 10**12, 0, 2)
-    # test.transmission_plot(test.ax)
-    # test.transmission_fit(test.ax)
+    # honkler.config_plot_size(0.2, 0.9, 0.15, 0.9)
+    test = general_data(True)
+    test.transmission_load(0, 1, True)
+    test.transmission_filter(0.8, 10**12, 0, 2)
+    test.transmission_plot(test.ax)
+    test.transmission_fit(test.ax)
+    honkler.save_ree(test.ax, "output/fig2_transmission", "svg")

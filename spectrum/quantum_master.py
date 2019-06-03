@@ -119,6 +119,9 @@ class quantum_master:
         Evaluate the Josephson energy, critical current, and resistance.
         The more squares of JJ, the bigger the resistance, and the larger it's energy
 
+        We assume that it is a standard JJ: 20nm - AlOx - 30nm
+        Count in 100x100nm^2 squares
+
         __ Return __
         self.EJ: josephson energy in GHz
         self.critical_current: critical current in A
@@ -129,10 +132,10 @@ class quantum_master:
         boltzman = 1.38 * 10**(-23)
         delta_al = 1.764 * transition_al * boltzman
         resistance_constant = self.const_h / (4 * self.const_eCharge**2)
-        resistance_of100x100_NbN = 18.4 * 10**3
+        resistance_of100x100_Al = 18.4 * 10**3
 
         # 2 - evaluation
-        self.param_resistance = resistance_of100x100_NbN / squares_JJ
+        self.param_resistance = resistance_of100x100_Al / squares_JJ
         self.param_critical_current = np.pi * delta_al / \
             (2 * self.const_eCharge * self.param_resistance)
         self.EJ = resistance_constant * delta_al / (2 * self.param_resistance)

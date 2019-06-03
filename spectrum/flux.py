@@ -490,7 +490,7 @@ class flux(quantum_master):
             plotAxes.plot(self.flux_list,
                           (self.dipole_moment_voltage_beta[:, 0]**2 +
                            self.dipole_moment_voltage_beta[:, 1]**2)**(1 / 2),
-                          label="1<->2", color='C8')
+                          label="1<->2", color='C9')
 
             plotAxes.set_xlabel("Magnetic Flux ($\Phi$)")
             plotAxes.set_ylabel(
